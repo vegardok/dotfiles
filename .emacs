@@ -100,6 +100,11 @@
 (add-hook 'js2-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 (add-hook 'css-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 (add-hook 'html-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
+(add-hook 'web-mode-hook (lambda () (interactive) (column-marker-1 121)))
+(add-hook 'js2-mode-hook (lambda () (interactive) (column-marker-1 121)))
+(add-hook 'css-mode-hook (lambda () (interactive) (column-marker-1 121)))
+(add-hook 'html-mode-hook (lambda () (interactive) (column-marker-1 121)))
+
 
 ;; (defun ivarru-delete-spurious-whitespace-on-save ()
 ;;   (make-variable-buffer-local 'write-file-functions)
@@ -129,6 +134,8 @@
    (quote
     ("20070e2f1b2f738568a8b1eeb53e413d427cb24a129e37951255520c51d152bf" "0c311fb22e6197daba9123f43da98f273d2bfaeeaeb653007ad1ee77f0003037" default)))
  '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
+ '(flycheck-eslintrc "~/.eslintrc")
+ '(flycheck-temp-prefix "/tmp/flycheck")
  '(foreground-color "#cccccc")
  '(global-whitespace-mode t)
  '(grep-find-ignored-directories
@@ -187,6 +194,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(column-marker-1 ((t (:background "dark red"))))
  '(whitespace-newline ((t (:foreground "disabledControlTextColor" :weight normal))))
  '(whitespace-space ((t (:foreground "disabledControlTextColor"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))
@@ -309,7 +317,8 @@
   '((sequence "TODO" "IN-PROGRESS" "WAITING" "DONE")))
 
 
- (setq-default fill-column 100)
+(setq-default fill-column 100)
+(setq column-number-mode t)
 (put 'erase-buffer 'disabled nil)
 
 ;; grep mode open in same window
@@ -395,57 +404,19 @@ and overlay is highlighted between MK and END-MK."
 (when (and (eq next-error-highlight 'fringe-arrow))
   ;; We want a fringe arrow (instead of highlighting).
   (setq next-error-overlay-arrow-position
-    (copy-marker (line-beginning-position)))))))
+        (copy-marker (line-beginning-position)))))))
 
-
-
-
-;; (eval-after-load "magit"
-;;   '(cl-defun magit-mode-refresh-buffer (&optional (buffer (current-buffer)))
-;;      (with-current-buffer buffer
-;;        (when magit-refresh-function
-;;          (let* ((old-line (line-number-at-pos))
-;;                 (old-point (point))
-;;                 (old-window (car (get-buffer-window-list buffer nil t)))
-;;                 (old-window-start (window-start old-window))
-;;                 (old-section (magit-current-section))
-;;                 (old-path (and old-section
-;;                                (magit-section-path (magit-current-section)))))
-;;            (beginning-of-line)
-;;            (let ((inhibit-read-only t)
-;;                  (section-line (and old-section
-;;                                     (count-lines
-;;                                      (magit-section-beginning old-section)
-;;                                      (point))))
-;;                  (line-char (- old-point (point))))
-;;              (erase-buffer)
-;;              (apply magit-refresh-function
-;;                     magit-refresh-args)
-;;              (let ((s (and old-path (magit-find-section old-path magit-root-section))))
-;;                (cond (s
-;;                       (goto-char (magit-section-beginning s))
-;;                       (forward-line section-line)
-;;                       (forward-char line-char))
-;;                      (t
-;;                       (save-restriction
-;;                         (widen)
-;;                         (goto-char (point-min))
-;;                         (forward-line (1- old-line)))))))
-
-;;            (dolist (w (get-buffer-window-list buffer nil t))
-;;              (set-window-point w (point))
-;;              (set-window-start w old-window-start t))
-;;            (magit-highlight-section)
-;;            (magit-refresh-marked-commits-in-buffer))))))
+(require 'flycheck)
+(add-hook 'after-init-hook #'global-flycheck-mode)
+(setq-default flycheck-disabled-checkers
+              (append flycheck-disabled-checkers
+                      '(javascript-jshint)))
+(setq flycheck-checkers '(javascript-eslint))
+(flycheck-add-mode 'javascript-eslint 'web-mode)
+(add-hook 'after-init-hook #'global-flycheck-mode)
 
 
 (winner-mode 1)
-
-
-;; (require 'layout-restore)
-;; (global-set-key (kbd "C-c C-l") 'layout-save-current)
-;; (global-set-key (kbd "C-c l") 'layout-restore)
-
 
 (fset 'initlayout
    (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([24 51 24 51 24 43 M-right M-right 24 50 M-down 134217848 115 104 101 108 108 return 134217848 114 101 110 97 44 101 backspace backspace 109 101 45 98 117 102 102 101 114 return 42 115 104 101 108 108 45 103 114 117 110 116 42 return 134217848 115 104 101 108 108 return M-left M-left 134217848 109 97 103 105 116 45 115 116 97 116 117 115 return 99 120 tab 99 120 return M-up 24 48] 0 "%d")) arg)))

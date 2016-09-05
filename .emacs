@@ -420,3 +420,5 @@ and overlay is highlighted between MK and END-MK."
 
 (fset 'initlayout
    (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([24 51 24 51 24 43 M-right M-right 24 50 M-down 134217848 115 104 101 108 108 return 134217848 114 101 110 97 44 101 backspace backspace 109 101 45 98 117 102 102 101 114 return 42 115 104 101 108 108 45 103 114 117 110 116 42 return 134217848 115 104 101 108 108 return M-left M-left 134217848 109 97 103 105 116 45 115 116 97 116 117 115 return 99 120 tab 99 120 return M-up 24 48] 0 "%d")) arg)))
+
+(add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))

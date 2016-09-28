@@ -7,6 +7,7 @@
       "http://melpa.milkbox.net/packages/"))
 
 (add-to-list 'load-path "~/.emacs.d/lisp")
+(add-to-list 'load-path "~/.emacs.d/lisp")
 (add-to-list 'custom-theme-load-path "~/.emacs.d/elpa/noctilux-theme-20150723.747/")
 
 (package-initialize)
@@ -122,6 +123,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(ac-js2-evaluate-calls t)
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(ansi-color-names-vector
@@ -134,7 +136,7 @@
    (quote
     ("20070e2f1b2f738568a8b1eeb53e413d427cb24a129e37951255520c51d152bf" "0c311fb22e6197daba9123f43da98f273d2bfaeeaeb653007ad1ee77f0003037" default)))
  '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
- '(flycheck-eslintrc "~/.eslintrc")
+ '(flyclheck-eslintrc "~/.eslintrc")
  '(flycheck-temp-prefix "/tmp/flycheck")
  '(foreground-color "#cccccc")
  '(global-whitespace-mode t)
@@ -184,6 +186,7 @@
  '(show-trailing-whitespace t)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
+ '(web-mode-enable-auto-quoting nil)
  '(whitespace-style
    (quote
     (face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))))
@@ -268,11 +271,13 @@
    (interactive)
    (popup-menu 'yank-menu)))
 (global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
-(global-set-key (kbd "M-RET") 'hippie-expand)
+;;(global-set-key (kbd "M-RET") 'hippie-expand)
+(global-set-key (kbd "M-RET") 'auto-complete)
 (global-set-key (kbd "M-s") 'er/expand-region)
 (global-set-key (kbd "M-C-<down>") 'mc/mark-next-like-this)
 (global-set-key (kbd "M-C-<up>") 'mc/mark-previous-like-this)
 (global-set-key (kbd "C-x ?") 'locate)
+(global-set-key (kbd "C-x m") 'magit-status)
 
 ;; (global-set-key (kbd "C-M-RET") 'find-file-at-point)
 
@@ -422,3 +427,7 @@ and overlay is highlighted between MK and END-MK."
    (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([24 51 24 51 24 43 M-right M-right 24 50 M-down 134217848 115 104 101 108 108 return 134217848 114 101 110 97 44 101 backspace backspace 109 101 45 98 117 102 102 101 114 return 42 115 104 101 108 108 45 103 114 117 110 116 42 return 134217848 115 104 101 108 108 return M-left M-left 134217848 109 97 103 105 116 45 115 116 97 116 117 115 return 99 120 tab 99 120 return M-up 24 48] 0 "%d")) arg)))
 
 (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
+(add-hook 'shell-mode-hook (lambda() (setq show-trailing-whitespace nil)))
+
+
+(global-auto-complete-mode 1)

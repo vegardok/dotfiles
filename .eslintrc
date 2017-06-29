@@ -1,86 +1,96 @@
 {
-    "extends": "reactjs",
-    "rules": {
-        "new-cap": [2, {
-            "newIsCap": false, // for constructors selected dynamically
-            "capIsNewExceptions": [
-                "Crypto.PBKDF2",
-                "Crypto.SHA256",
-                "Crypto.HMAC",
-                "Immutable.List",
-                "Immutable.Map",
-                "Immutable.Set",
-                "DragSource",
-                "DragDropContext",
-                "DropTarget",
-                "URI"
-            ]
-        }],
-        "react/jsx-uses-react": 1,
-        "quotes": [2, "double", { "avoidEscape": true, "allowTemplateLiterals": true }],
-        "object-curly-spacing": [ 2, "always" ],
-        "array-bracket-spacing": [ 0, "always" ],
-        "react/jsx-curly-spacing": [ 0, "always" ], // there is no current consensus on this
-        "max-len": [ 0, 120, 4 ], // TODO: There are too many lines that break this rule right now.
-        "camelcase": 2,
-        "init-declarations": 0,
-        "wrap-iife": 0,
-        "react/prop-types": 0, // TODO: Set this to 1 and make sure prop-types are cleaned up.
-        "react/jsx-no-literals": 0,
-        "react/jsx-space-before-closing": 2,
-        "no-shadow": 0, // TODO: Shadowing should be discouraged, but there are too many to fix right now.
-        "react/jsx-no-bind": 0, // This is identified as a performance issue, but this is used sometimes to acceptable effect.
-        "indent": 0, // TODO: Should be 4-spaces but this is a big job.
-        "react/jsx-indent": 0,
-        "react/prefer-es6-class": 0,
-        "func-names": 0, // unnamed functions are fine.
-        "space-before-function-paren": 0, // TODO: Set to 2 and fix the issues.
-        "react/jsx-indent-props": 0, // TODO: Set to 2 and fix the issues.
-        "react/jsx-closing-bracket-location": 0,
-        "no-var": 0,
-        "vars-on-top": 0,
-        "strict": 0, // Ignoring this, as ECMAScript is strict (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode/Transitioning_to_strict_mode#Differences_from_non-strict_to_strict)
-        "react/no-string-refs": 0, // TODO: string refs is deprecated, but is being used (requires possible change in logic). Should be 2 eventually
-        "quote-props": [ 2, "as-needed", { "keywords": true }],
-        "prefer-reflect": 0,
-        "no-param-reassign": 0, // Probably, but too many to fix right now.
-        "spaced-comment": 0,
-        "react/sort-comp": 0,
-        "no-else-return": 0,
-        "react/no-is-mounted": 0, // TODO: https://facebook.github.io/react/blog/2015/12/16/ismounted-antipattern.html
-        "consistent-return": 0,
-        "react/jsx-boolean-value": 0,
-        "radix": 2,
-        "comma-spacing": 0,
-        "no-use-before-define": 0,
-        "no-alert": 1, // TODO: Put an exception in for admin/
-        "dot-notation": [ 2, { "allowKeywords": true }],
-        "prefer-spread": 0,
-        "react/no-multi-comp": 0,
-        "react/jsx-key": 0, // Should be 2, but discovering keys is not easy in certain scenarios,
-        "no-nested-ternary": 0,
-        "no-console": 2,
-        "default-case": 0, // Should be 2 when we migrate from flux to redux
-        "no-unused-vars": [2, { args: "none" } ],
-        "block-scoped-var": 0, // TODO: maybe
-        "no-empty": [2, { "allowEmptyCatch": true } ]
-    },
     "parserOptions": {
-        "ecmaFeatures": {
-            "classes": true
-        }
+        "ecmaVersion": 6,
+        "sourceType": "module"
     },
-    "globals": {
-        "define": false,
-        "require": false,
-        "describe": false,
-        "it": false,
-        "expect": false,
-        "beforeEach": false,
-        "spyOn": false,
-        "afterEach": false,
-        "jasmine": false,
-        "runs": false,
-        "waitsFor": false
+    "rules": {
+        "no-underscore-dangle": 0,
+        "no-unexpected-multiline": 1,
+
+        "accessor-pairs": 2,
+        "block-scoped-var": 2,
+        "curly": 2,
+        "dot-notation": 2,
+        "eqeqeq": 2,
+        "guard-for-in": 2,
+        "keyword-spacing": 2,
+        "no-alert": 2,
+        "no-caller": 2,
+        "no-div-regex": 2,
+        "no-else-return": 2,
+        "no-eq-null": 2,
+        "no-eval": 2,
+        "no-extend-native": 0,
+        "no-extra-bind": 2,
+        "no-fallthrough": 2,
+        "no-floating-decimal": 2,
+        "no-implied-eval": 2,
+        "no-iterator": 2,
+        "no-labels": 2,
+        "no-lone-blocks": 2,
+        "no-loop-func": 2,
+        "no-multi-spaces": 0,
+        "no-multi-str": 2,
+        "no-native-reassign": 2,
+        "no-new-func": 2,
+        "no-new-wrappers": 2,
+        "no-new": 2,
+        "no-octal-escape": 2,
+        "no-octal": 2,
+        "no-param-reassign": 0,
+        "no-process-env": 0,
+        "no-proto": 2,
+        "no-redeclare": 2,
+        "no-return-assign": 2,
+        "no-script-url": 2,
+        "no-self-compare": 2,
+        "no-sequences": 2,
+        "no-throw-literal": 2,
+        "no-unused-expressions": 2,
+        "no-void": 2,
+        "vars-on-top": 2,
+        "wrap-iife": [2, "inside"],
+
+        "no-catch-shadow": 0,
+        "no-delete-var": 2,
+        "no-shadow": 2,
+        "no-undef-init": 2,
+        "no-undef": 2,
+        "no-undefined": 2,
+        "no-unused-vars": 2,
+        "no-use-before-define": 2,
+
+        "brace-style": 2,
+        "camelcase": [2, { "properties": "always" }],
+        "comma-spacing": [2, { "before": false, "after": true }],
+        "comma-style": [2, "last"],
+        "consistent-this": [2, "self"],
+        "eol-last": 2,
+        "func-style": [0, "declaration"],
+        "indent": [2, 4, { "SwitchCase": 1 }],
+        "key-spacing": [2, {
+            "beforeColon": false,
+            "afterColon": true
+        }],
+        "max-nested-callbacks": [2, 3],
+        "new-cap": 2,
+        "new-parens": 2,
+        "no-array-constructor": 2,
+        "no-lonely-if": 2,
+        "no-multiple-empty-lines": [1, { "max": 2 }],
+        "no-nested-ternary": 2,
+        "object-curly-spacing": [2, "always"],
+        "no-unneeded-ternary": 2,
+        "operator-assignment": [2, "always"],
+        "operator-linebreak": [2, "after"],
+        "padded-blocks": [2, "never"],
+        "quotes": [2, "single"],
+        "semi": [2, "always"],
+        "space-before-blocks": [2, "always"],
+        "spaced-comment": [2, "always", { "exceptions": ["eslint-disable", "global", "eslint", "eslint-env"] }],
+        "global-strict": 0,
+        "strict": [2, "global"],
+        "no-var": 0,
+        "object-shorthand": 0
     }
 }

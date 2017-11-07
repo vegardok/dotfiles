@@ -5,42 +5,28 @@
 (add-to-list 'package-archives
     '("melpa" .
       "http://melpa.milkbox.net/packages/"))
-
 (add-to-list 'load-path "~/.emacs.d/lisp")
-(add-to-list 'load-path "~/.emacs.d/lisp")
-(add-to-list 'custom-theme-load-path "~/.emacs.d/elpa/noctilux-theme-20150723.747/")
 
 (package-initialize)
 (require 'multiple-cursors)
 
-(require 'ido)
-(ido-mode t)
-(setq ido-enable-prefix nil
-      ido-auto-merge-work-directories-length -1
-      ido-case-fold  t                 ; be case-insensitive
-      ido-confirm-unique-completion t
-      ido-create-new-buffer 'always
-      ido-enable-flex-matching t
-      ido-enable-last-directory-history t ; remember last used dirs
-      ido-handle-duplicate-virtual-buffers 2
-      ido-max-prospects 20              ; don't spam my minibuffer
-      ido-max-work-directory-list 10   ; should be enough
-      ido-max-work-file-list      100   ; remember many
-      ido-save-directory-list-file "~/.emacs.d/cache/ido.last"
-      ido-use-filename-at-point nil    ; don't use filename at point (annoying)
-      ido-use-url-at-point nil         ; don't use url at point (annoying)
-      ido-use-virtual-buffers t
-      ido-ignore-buffers ;; ignore these guys
-      '("\\` " "^\*Mess" "^\*Back" ".*Completion" "^\*Ido" "^\*trace"
-        "^\*compilation" "^\*GTAGS" "^session\.*")
-      ido-work-directory-list '("~/"
-                                "~/cxense/cx/services/analytics/src/main/resources/com/cxense/analytics/webapp"
-                                "~/cxense/cx/modules/cx-core/src/main/resources/com/cxense/webapp"))
+;; (require 'ido)
+;; (ido-mode t)
+(require 'helm-config)
 
+(global-set-key (kbd "M-x") #'helm-M-x)
+(global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
+(global-set-key (kbd "C-x C-f") #'helm-find-files)
+(setq helm-M-x-fuzzy-match t
+      helm-buffers-fuzzy-matching t
+      helm-recentf-fuzzy-match    t)
+(global-set-key (kbd "M-y") 'helm-show-kill-ring)
+(global-set-key (kbd "C-x b") 'helm-mini)
+
+(helm-mode 1)
+
+(scroll-bar-mode -1)
 (menu-bar-mode -99)
-
-;; when using ido, the confirmation is rather annoying...
- (setq confirm-nonexistent-file-or-buffer nil)
 
 
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -48,12 +34,17 @@
 (global-font-lock-mode 1)
 (show-paren-mode 1)
 
+(setq frame-title-format "Emacs - %f")
+(setq echo-keystrokes .1)
+
 (require 'linum)
-;;(global-linum-mode)
 (define-global-minor-mode my-gobal-linum-mode global-linum-mode
   (lambda ()
-    (when (not (memq major-mode
-                     (list 'slime-repl-mode 'shell-mode 'term-mode)))
+    (when
+        (and
+         (not (string-match "magit-" (symbol-name major-mode)))
+         (not (memq major-mode
+               (list 'slime-repl-mode 'shell-mode 'term-mode))))
       (linum-mode))))
 (my-gobal-linum-mode 1)
 
@@ -77,6 +68,7 @@
 (autoload 'web-mode "web-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
 
 (defun ivarru-delete-spurious-whitespace ()
   (interactive)
@@ -97,25 +89,37 @@
   (make-variable-buffer-local 'write-file-functions)
   (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
 
+(defun save-buffer-without-whitespace-cleanup ()
+  (interactive)
+  (let ((b (current-buffer)))   ; memorize the buffer
+    (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
+      (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+        (with-current-buffer b  ; go back to the current buffer, write-file-functions is now buffer-local
+          (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+            (save-buffer)))))))
+
 (add-hook 'web-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 (add-hook 'js2-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 (add-hook 'css-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 (add-hook 'html-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 (add-hook 'web-mode-hook (lambda () (interactive) (column-marker-1 121)))
+
 (add-hook 'js2-mode-hook (lambda () (interactive) (column-marker-1 121)))
 (add-hook 'css-mode-hook (lambda () (interactive) (column-marker-1 121)))
 (add-hook 'html-mode-hook (lambda () (interactive) (column-marker-1 121)))
 
+;; Hack to stop web-mode messing with whitespace faces
+(add-hook 'web-mode-hook
+          (lambda ()
+            (interactive)
+            (global-whitespace-mode t)
+            (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
+            (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
+            (setq-default web-mode-comment-formats '(("javascript" . "//")))))
 
-;; (defun ivarru-delete-spurious-whitespace-on-save ()
-;;   (make-variable-buffer-local 'write-file-functions)
-;;   ;; Notice that delete-trailing-whitespace returns nil.
-;;   (add-to-list 'write-file-functions 'delete-trailing-whitespace)
-;;   (add-to-list 'write-file-functions
-;;                (lambda ()
-;;                  (save-excursion
-;;                    (replace-regexp "\\(^ *\\(?:[^ /]\\|/[^/]\\).*[^ \n]\\)  +"
-;;                                    "\\1 " nil (point-min) (point-max))))))
+
+
+
 
 
 (custom-set-variables
@@ -136,21 +140,29 @@
    (quote
     ("20070e2f1b2f738568a8b1eeb53e413d427cb24a129e37951255520c51d152bf" "0c311fb22e6197daba9123f43da98f273d2bfaeeaeb653007ad1ee77f0003037" default)))
  '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
- '(flyclheck-eslintrc "~/.eslintrc")
- '(flycheck-temp-prefix "/tmp/flycheck")
  '(foreground-color "#cccccc")
+ '(global-auto-complete-mode t)
  '(global-whitespace-mode t)
  '(grep-find-ignored-directories
    (quote
-    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external")))
+    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out")))
  '(grep-find-ignored-files
    (quote
-    (".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo")))
+    (".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock")))
+ '(helm-reuse-last-window-split-state t)
+ '(helm-split-window-in-side-p t)
  '(hippie-expand-dabbrev-as-symbol nil)
  '(hippie-expand-max-buffers 0)
+ '(ido-auto-merge-work-directories-length -1)
  '(ido-case-fold t)
+ '(ido-create-new-buffer (quote always))
+ '(ido-ignore-buffers (quote ("^*Mini" "mini" "echo")))
+ '(ido-max-work-file-list 200)
+ '(ido-save-directory-list-file "~/.emacs.d/cache/ido.last")
+ '(ido-use-virtual-buffers t)
  '(imenu-auto-rescan t)
  '(inhibit-startup-screen t)
+ '(js-indent-level 2)
  '(js2-allow-keywords-as-property-names t)
  '(js2-basic-offset 4)
  '(js2-bounce-indent-p nil)
@@ -165,6 +177,7 @@
  '(js2-strict-missing-semi-warning t)
  '(magit-cherry-buffer-name-format "*magit-cherry*")
  '(magit-diff-buffer-name-format "*magit-diff*")
+ '(magit-diff-highlight-indentation (quote (("" . tabs))))
  '(magit-process-buffer-name-format "*magit-process*")
  '(magit-rebase-arguments (quote ("--autosquash")))
  '(magit-reflog-buffer-name-format "*magit-reflog*")
@@ -176,16 +189,28 @@
  '(magit-stash-buffer-name-format "*magit-stash*")
  '(magit-stashes-buffer-name-format "*magit-stashes*")
  '(magit-status-buffer-name-format "*magit-status: %a*")
+ '(magit-visit-ref-behavior (quote (checkout-branch)))
  '(menu-bar-mode t)
  '(minibuffer-prompt-properties
    (quote
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+ '(package-selected-packages
+   (quote
+    (python-mode 2048-game helm w3m w3 rjsx-mode flow-minor-mode haskell-mode yasnippet yaml-mode web-mode tern-auto-complete scala-mode nodejs-repl multiple-cursors markdown-mode json-mode js2-mode flycheck evil-magit column-marker)))
+ '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)
+ '(same-window-regexps (quote ("*")))
  '(show-paren-mode t)
  '(show-trailing-whitespace t)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
+ '(web-mode-code-indent-offset 2)
+ '(web-mode-comment-style 1)
+ '(web-mode-enable-auto-closing nil)
+ '(web-mode-enable-auto-indentation nil)
+ '(web-mode-enable-auto-opening nil)
+ '(web-mode-enable-auto-pairing nil)
  '(web-mode-enable-auto-quoting nil)
  '(whitespace-style
    (quote
@@ -198,8 +223,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(column-marker-1 ((t (:background "dark red"))))
- '(whitespace-newline ((t (:foreground "disabledControlTextColor" :weight normal))))
- '(whitespace-space ((t (:foreground "disabledControlTextColor"))))
+ '(whitespace-newline ((t (:foreground "dim gray" :weight normal))))
+ '(whitespace-space ((t (:foreground "#3f4554"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))
 
 
@@ -239,6 +264,9 @@
      (comint-truncate-buffer)))
 
 (add-hook 'shell-mode-hook
+          (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
+
+(add-hook 'nodejs-repl-mode-hook
   (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
 
 
@@ -277,9 +305,8 @@
 (global-set-key (kbd "M-C-<down>") 'mc/mark-next-like-this)
 (global-set-key (kbd "M-C-<up>") 'mc/mark-previous-like-this)
 (global-set-key (kbd "C-x ?") 'locate)
-(global-set-key (kbd "C-x m") 'magit-status)
+(global-set-key (kbd "M-r") 'rgrep)
 
-;; (global-set-key (kbd "C-M-RET") 'find-file-at-point)
 
 
 (add-hook 'magit-mode-hook
@@ -306,7 +333,9 @@
   (let ((b (if mark-active (min (point) (mark)) (point-min)))
         (e (if mark-active (max (point) (mark)) (point-max))))
     (shell-command-on-region b e
-                             "python -c 'import sys,json; data=json.loads(sys.stdin.read()); print json.dumps(data,sort_keys=True,indent=4).decode(\"unicode_escape\").encode(\"utf8\",\"replace\")'" (current-buffer) t)))
+                             "python -c 'import sys,json; data=json.loads(sys.stdin.read()); print json.dumps(data,sort_keys=True,indent=4,separators=(\",\", \": \")).decode(\"unicode_escape\").encode(\"utf8\",\"replace\")'" (current-buffer) t)))
+
+;;(define-key json-mode-map (kbd "C-c C-f") 'beautify-json)
 
 
 (require 'js2-mode)
@@ -322,7 +351,7 @@
   '((sequence "TODO" "IN-PROGRESS" "WAITING" "DONE")))
 
 
-(setq-default fill-column 100)
+(setq-default fill-column 80)
 (setq column-number-mode t)
 (put 'erase-buffer 'disabled nil)
 
@@ -412,22 +441,62 @@ and overlay is highlighted between MK and END-MK."
         (copy-marker (line-beginning-position)))))))
 
 (require 'flycheck)
+
 (add-hook 'after-init-hook #'global-flycheck-mode)
-(setq-default flycheck-disabled-checkers
-              (append flycheck-disabled-checkers
-                      '(javascript-jshint)))
+
+(setq-default flycheck-disabled-checkers '(javascript-jshint))
 (setq flycheck-checkers '(javascript-eslint))
+(setq flycheck-eslintrc "~/.eslintrc.json")
+
 (flycheck-add-mode 'javascript-eslint 'web-mode)
+
 (add-hook 'after-init-hook #'global-flycheck-mode)
 
 
 (winner-mode 1)
 
-(fset 'initlayout
-   (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([24 51 24 51 24 43 M-right M-right 24 50 M-down 134217848 115 104 101 108 108 return 134217848 114 101 110 97 44 101 backspace backspace 109 101 45 98 117 102 102 101 114 return 42 115 104 101 108 108 45 103 114 117 110 116 42 return 134217848 115 104 101 108 108 return M-left M-left 134217848 109 97 103 105 116 45 115 116 97 116 117 115 return 99 120 tab 99 120 return M-up 24 48] 0 "%d")) arg)))
+
 
 (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
 (add-hook 'shell-mode-hook (lambda() (setq show-trailing-whitespace nil)))
 
 
 (global-auto-complete-mode 1)
+
+
+(fset 'initlayout
+      (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([24 51 24 51 24 43 M-right M-right 24 50 134217848 115 104 101 108 108 return 134217848 110 backspace 109 97 103 105 116 45 115 116 97 116 117 115 return 114 101 112 111 tab 101 118 101 tab 101 backspace 115 tab 106 tab return 24] 0 "%d")) arg)))
+
+(fset 'go-to-magit-status
+      (lambda (&optional arg) "Keyboard macro." (interactive "p") (kmacro-exec-ring-item (quote ([24 98 42 109 97 103 105 116 58 return] 0 "%d")) arg)))
+(global-set-key (kbd "C-x m") 'go-to-magit-status)
+
+(defvar my-ediff-last-windows nil)
+
+(defun my-store-pre-ediff-winconfig ()
+  (setq my-ediff-last-windows (current-window-configuration)))
+
+(defun my-restore-pre-ediff-winconfig ()
+  (set-window-configuration my-ediff-last-windows))
+
+(add-hook 'ediff-before-setup-hook #'my-store-pre-ediff-winconfig)
+(add-hook 'ediff-quit-hook #'my-restore-pre-ediff-winconfig)
+
+
+(add-hook
+ 'json-mode-hook
+ (lambda ()
+   (make-local-variable 'js-indent-level)
+   (setq js-indent-level 2)))
+
+(setq calendar-week-start-day 1)
+
+
+(add-hook
+ 'markdown-mode-hook
+ (lambda ()
+   (local-set-key (kbd "M-<left>") #'windmove-left)
+   (local-set-key (kbd "M-<right>") #'windmove-right)
+   (local-set-key (kbd "M-<up>") #'windmove-up)
+   (local-set-key (kbd "M-<down>") #'windmove-down)
+   (local-set-key (kbd "<backspace>") #'backward-delete-char-untabify)))

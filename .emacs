@@ -10,8 +10,20 @@
 (package-initialize)
 (require 'multiple-cursors)
 
-(require 'ido)
-(ido-mode t)
+;; (require 'ido)
+;; (ido-mode t)
+(require 'helm-config)
+
+(global-set-key (kbd "M-x") #'helm-M-x)
+(global-set-key (kbd "C-x r b") #'helm-filtered-bookmarks)
+(global-set-key (kbd "C-x C-f") #'helm-find-files)
+(setq helm-M-x-fuzzy-match t
+      helm-buffers-fuzzy-matching t
+      helm-recentf-fuzzy-match    t)
+(global-set-key (kbd "M-y") 'helm-show-kill-ring)
+(global-set-key (kbd "C-x b") 'helm-mini)
+
+(helm-mode 1)
 
 (scroll-bar-mode -1)
 (menu-bar-mode -99)
@@ -56,6 +68,7 @@
 (autoload 'web-mode "web-mode" nil t)
 (add-to-list 'auto-mode-alist '("\\.js$" . web-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx$" . web-mode))
+(add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
 
 (defun ivarru-delete-spurious-whitespace ()
   (interactive)
@@ -96,10 +109,17 @@
 (add-hook 'html-mode-hook (lambda () (interactive) (column-marker-1 121)))
 
 ;; Hack to stop web-mode messing with whitespace faces
-(add-hook 'web-mode-hook (lambda () (interactive) (global-whitespace-mode t)))
+(add-hook 'web-mode-hook
+          (lambda ()
+            (interactive)
+            (global-whitespace-mode t)
+            (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
+            (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
+            (setq-default web-mode-comment-formats '(("javascript" . "//")))))
 
-x(setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
-(add-to-list 'web-mode-comment-formats '("javascript" . "//"))
+
+
+
 
 
 (custom-set-variables
@@ -129,6 +149,8 @@ x(setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-
  '(grep-find-ignored-files
    (quote
     (".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock")))
+ '(helm-reuse-last-window-split-state t)
+ '(helm-split-window-in-side-p t)
  '(hippie-expand-dabbrev-as-symbol nil)
  '(hippie-expand-max-buffers 0)
  '(ido-auto-merge-work-directories-length -1)
@@ -140,6 +162,7 @@ x(setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-
  '(ido-use-virtual-buffers t)
  '(imenu-auto-rescan t)
  '(inhibit-startup-screen t)
+ '(js-indent-level 2)
  '(js2-allow-keywords-as-property-names t)
  '(js2-basic-offset 4)
  '(js2-bounce-indent-p nil)
@@ -173,7 +196,7 @@ x(setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (w3m w3 rjsx-mode flycheck-flow flow-minor-mode haskell-mode yasnippet yaml-mode web-mode tern-auto-complete scala-mode nodejs-repl multiple-cursors markdown-mode json-mode js2-mode flycheck evil-magit column-marker)))
+    (python-mode 2048-game helm w3m w3 rjsx-mode flow-minor-mode haskell-mode yasnippet yaml-mode web-mode tern-auto-complete scala-mode nodejs-repl multiple-cursors markdown-mode json-mode js2-mode flycheck evil-magit column-marker)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)
@@ -182,6 +205,8 @@ x(setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-
  '(show-trailing-whitespace t)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
+ '(web-mode-code-indent-offset 2)
+ '(web-mode-comment-style 1)
  '(web-mode-enable-auto-closing nil)
  '(web-mode-enable-auto-indentation nil)
  '(web-mode-enable-auto-opening nil)
@@ -416,11 +441,15 @@ and overlay is highlighted between MK and END-MK."
         (copy-marker (line-beginning-position)))))))
 
 (require 'flycheck)
+
 (add-hook 'after-init-hook #'global-flycheck-mode)
+
 (setq-default flycheck-disabled-checkers '(javascript-jshint))
 (setq flycheck-checkers '(javascript-eslint))
-(setq flycheck-eslintrc "~/.eslintrc")
+(setq flycheck-eslintrc "~/.eslintrc.json")
+
 (flycheck-add-mode 'javascript-eslint 'web-mode)
+
 (add-hook 'after-init-hook #'global-flycheck-mode)
 
 
@@ -459,6 +488,7 @@ and overlay is highlighted between MK and END-MK."
  (lambda ()
    (make-local-variable 'js-indent-level)
    (setq js-indent-level 2)))
+
 (setq calendar-week-start-day 1)
 
 

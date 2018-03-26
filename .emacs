@@ -1,17 +1,21 @@
 (require 'package)
 
 (add-to-list 'package-archives
-             '("marmalade" .
-               "http://marmalade-repo.org/packages/"))
+     '("marmalade" .
+       "http://marmalade-repo.org/packages/"))
 (add-to-list 'package-archives
-             '("melpa" .
-               "http://melpa.milkbox.net/packages/"))
+     '("melpa" .
+       "http://melpa.milkbox.net/packages/"))
 (add-to-list 'load-path "~/.emacs.d/lisp")
 
 (package-initialize)
 
 
 ;; Emacs UI
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+(defun my-minibuffer-setup ()
+       (set (make-local-variable 'face-remapping-alist)
+      '((default :height 3.0))))
 (require 'helm-config)
 (global-set-key (kbd "M-x") #'helm-M-x)
 (global-set-key (kbd "C-x C-f") #'helm-find-files)
@@ -22,14 +26,15 @@
 (global-set-key (kbd "M-y") 'helm-show-kill-ring)
 (global-set-key (kbd "C-x b") 'helm-mini)
 
-(global-set-key (kbd "C-s") 'isearch-with-region)
-(global-set-key (kbd "C-r") 'isearch-with-region-backwards)
+;; (global-set-key (kbd "C-s") 'isearch-with-region)
+;; (global-set-key (kbd "C-r") 'isearch-with-region-backwards)
+(global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
 
 (helm-mode 1)
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 (setq frame-title-format "Emacs - %f")
-(global-auto-complete-mode 1)
+;; (global-auto-complete-mode 1)
 (add-hook 'before-save-hook 'whitespace-cleanup)
 
 (setq mac-option-modifier nil
@@ -49,6 +54,9 @@
 (windmove-default-keybindings 'meta)
 
 (global-unset-key "\C-t") ;; transpose-chars
+(global-unset-key "\M-t") ;; transpose-words
+(global-unset-key "\C-x\m") ;; mail
+
 (global-unset-key "\C-z")
 (global-unset-key "\C-x\C-z")
 
@@ -71,8 +79,8 @@
 (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
 (add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
 (add-to-list 'auto-mode-alist '("\\.vue$" . vue-mode))
-(add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
-(add-to-list 'auto-mode-alist '("\\.scss\\'" . scss-mode))
+(add-to-list 'auto-mode-alist '("\\.html$" . html-mode))
+(add-to-list 'auto-mode-alist '("\\.scss\\'" . css-mode))
 
 (add-hook 'web-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 (add-hook 'js2-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
@@ -81,18 +89,21 @@
 (add-hook 'vue-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 
 ;; Hack to stop web-mode messing with whitespace faces
-(add-hook 'web-mode-hook
-          (lambda ()
-            (interactive)
-            (global-whitespace-mode t)
-            (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
-            (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
-            (setq-default web-mode-comment-formats '(("javascript" . "//")))))
+(add-hook
+ 'web-mode-hook
+ (lambda ()
+   (interactive)
+   (global-whitespace-mode t)
+   (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
+   (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
+   (setq-default web-mode-comment-formats '(("javascript" . "//")))
+
+   (set (make-local-variable 'company-backends) '(company-web-html))))
 
 (add-hook 'web-mode-hook
-          (lambda ()
-            (web-mode-set-content-type "jsx")
-            (message "now set to: %s" web-mode-content-type)))
+      (lambda ()
+    (web-mode-set-content-type "jsx")
+    (message "now set to: %s" web-mode-content-type)))
 
 (setq-default flycheck-disabled-checkers '(javascript-jshint))
 (setq flycheck-checkers '(javascript-eslint))
@@ -101,11 +112,11 @@
 ;; http://emacs.stackexchange.com/questions/21205/flycheck-with-file-relative-eslint-executable
 (defun my/use-eslint-from-node-modules ()
   (let* ((root (locate-dominating-file
-                (or (buffer-file-name) default-directory)
-                "node_modules"))
-         (eslint (and root
-                      (expand-file-name "node_modules/eslint/bin/eslint.js"
-                                        root))))
+    (or (buffer-file-name) default-directory)
+    "node_modules"))
+     (eslint (and root
+          (expand-file-name "node_modules/eslint/bin/eslint.js"
+            root))))
     (when (and eslint (file-executable-p eslint))
       (setq-local flycheck-javascript-eslint-executable eslint))))
 (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
@@ -149,6 +160,12 @@
    (local-set-key (kbd "M-<down>") #'windmove-down)
    (local-set-key (kbd "<backspace>") #'backward-delete-char-untabify)))
 
+;; Autocomplete
+;; (eval-after-load 'company
+;;   '(prog
+;;     (define-key company-mode-map (kbd "M-RET") 'helm-company)
+;;     (define-key company-active-map (kbd "M-RET") 'helm-company)))
+(global-set-key (kbd "M-RET") 'company-complete)
 
 
 ;; Functions
@@ -156,18 +173,20 @@
   (interactive "r")
   (if (region-active-p)
       (progn
-        (let ((string (buffer-substring-no-properties start end)))
-          (deactivate-mark)
-          (isearch-resume string nil nil t string nil)))
+    (message "fancy search")
+    (let ((string (buffer-substring-no-properties start end)))
+      (deactivate-mark)
+      (isearch-resume string nil nil t string nil)))
     (call-interactively 'isearch-forward-regexp)))
 
 (defun isearch-with-region-backwards(&optional start end)
   (interactive "r")
   (if (region-active-p)
       (progn
-        (let ((string (buffer-substring-no-properties start end)))
-          (deactivate-mark)
-          (isearch-resume string nil nil nil string nil)))
+    (message "fancy search")
+    (let ((string (buffer-substring-no-properties start end)))
+      (deactivate-mark)
+      (isearch-resume string nil nil nil string nil)))
     (call-interactively 'isearch-backward-regexp)))
 
 
@@ -181,8 +200,8 @@
       (message "%d" (point))
       (beginning-of-line)
       (if (looking-at (concat "^ *" (regexp-quote comment-start)))
-          (forward-line 1)
-        (replace-match "\\1"))))
+      (forward-line 1)
+    (replace-match "\\1"))))
   ;; Return nil for the benefit of `write-file-functions'.
   nil)
 
@@ -195,9 +214,9 @@
   (let ((b (current-buffer))) ; memorize the buffer
     (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
       (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-        (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
-          (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-            (save-buffer)))))))
+    (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
+      (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+    (save-buffer)))))))
 
 (defun ivarru-define-keys (keymap &rest defs)
   (cond
@@ -235,9 +254,10 @@
     ("20070e2f1b2f738568a8b1eeb53e413d427cb24a129e37951255520c51d152bf" "0c311fb22e6197daba9123f43da98f273d2bfaeeaeb653007ad1ee77f0003037" default)))
  '(delete-old-versions t)
  '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
- '(fill-column 120)
+ '(fill-column 100)
  '(foreground-color "#cccccc")
- '(global-auto-complete-mode t)
+ '(global-auto-complete-mode nil)
+ '(global-company-mode t)
  '(global-font-lock-mode t)
  '(global-whitespace-mode t)
  '(grep-find-ignored-directories
@@ -270,6 +290,7 @@
     ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine")))
  '(js2-highlight-level 3)
  '(js2-idle-timer-delay 0.5)
+ '(js2-ignored-warnings (quote ("msg.no.side.effects")))
  '(js2-indent-switch-body t)
  '(js2-mirror-mode nil)
  '(js2-strict-inconsistent-return-warning nil)
@@ -299,7 +320,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (swift-mode scss-mode vue-mode vue-html-mode virtualenvwrapper python-mode 2048-game helm w3m w3 rjsx-mode flow-minor-mode haskell-mode yasnippet yaml-mode web-mode tern-auto-complete scala-mode nodejs-repl multiple-cursors markdown-mode json-mode js2-mode flycheck evil-magit column-marker)))
+    (company-web helm-company company typescript-mode swift-mode scss-mode vue-mode vue-html-mode virtualenvwrapper python-mode 2048-game helm w3m w3 rjsx-mode flow-minor-mode haskell-mode yasnippet yaml-mode web-mode tern-auto-complete scala-mode nodejs-repl multiple-cursors markdown-mode json-mode js2-mode flycheck evil-magit column-marker)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)
@@ -307,7 +328,7 @@
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
  '(show-trailing-whitespace t)
- '(size-indication-mode t)
+ '(size-indication-mode nil)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
@@ -353,6 +374,10 @@
  ;; If there is more than one, they won't work right.
  '(default ((t (:family "Ubuntu Mono" :foundry "DAMA" :slant normal :weight normal :height 151 :width normal))))
  '(column-marker-1 ((t (:background "dark red"))))
+ '(helm-buffer-process ((t (:foreground "sienna1"))))
+ '(helm-ff-directory ((t (:foreground "deep sky blue"))))
+ '(helm-ff-file ((t (:inherit nil :foreground "PeachPuff1"))))
+ '(helm-selection ((t (:background "dark slate gray" :distant-foreground "black"))))
  '(whitespace-newline ((t (:foreground "dim gray" :weight normal))))
  '(whitespace-space ((t (:foreground "#3f4554"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))

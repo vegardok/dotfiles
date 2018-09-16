@@ -1,40 +1,89 @@
-(require 'package)
-
-(add-to-list 'package-archives
-     '("marmalade" .
-       "http://marmalade-repo.org/packages/"))
-(add-to-list 'package-archives
-     '("melpa" .
-       "http://melpa.milkbox.net/packages/"))
-(add-to-list 'load-path "~/.emacs.d/lisp")
-
+(setq init-dir (file-name-directory (or load-file-name (buffer-file-name))))
 (package-initialize)
+
+(defvar gnu '("gnu" . "https://elpa.gnu.org/packages/"))
+(defvar melpa '("melpa" . "https://melpa.org/packages/"))
+(defvar melpa-stable '("melpa-stable" . "https://stable.melpa.org/packages/"))
+(defvar org-elpa '("org" . "http://orgmode.org/elpa/"))
+
+;; Add marmalade to package repos
+(setq package-archives nil)
+(add-to-list 'package-archives melpa-stable t)
+(add-to-list 'package-archives melpa t)
+(add-to-list 'package-archives gnu t)
+(add-to-list 'package-archives org-elpa t)
+
+(unless (and (file-exists-p (concat init-dir "elpa/archives/gnu"))
+             (file-exists-p (concat init-dir "elpa/archives/melpa"))
+             (file-exists-p (concat init-dir "elpa/archives/melpa-stable")))
+  (package-refresh-contents))
+
+(defun packages-install (&rest packages)
+  (message "running packages-install")
+  (mapc (lambda (package)
+          (let ((name (car package))
+                (repo (cdr package)))
+            (when (not (package-installed-p name))
+              (let ((package-archives (list repo)))
+                (package-initialize)
+                (package-install name)))))
+        packages)
+  (package-initialize)
+  (delete-other-windows))
+
+(defun init--install-packages ()
+  (message "Lets install some packages")
+  (packages-install
+   ;; Since use-package this is the only entry here
+   ;; ALWAYS try to use use-package!
+   (cons 'use-package melpa)
+   ))
+
+(condition-case nil
+    (init--install-packages)
+  (error
+   (package-refresh-contents)
+   (init--install-packages)))
+
+
 
 
 ;; Emacs UI
+;;; M-x font
 (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
 (defun my-minibuffer-setup ()
-       (set (make-local-variable 'face-remapping-alist)
-      '((default :height 3.0))))
-(require 'helm-config)
-(global-set-key (kbd "M-x") #'helm-M-x)
-(global-set-key (kbd "C-x C-f") #'helm-find-files)
+  (set (make-local-variable 'face-remapping-alist)
+       '((default :height 3.0))))
 
-(setq helm-M-x-fuzzy-match t
-      helm-buffers-fuzzy-matching t
-      helm-recentf-fuzzy-match t)
-(global-set-key (kbd "M-y") 'helm-show-kill-ring)
-(global-set-key (kbd "C-x b") 'helm-mini)
+(use-package which-key
+  :ensure t
+  :diminish which-key-mode
+  :config
+  (which-key-mode))
 
-;; (global-set-key (kbd "C-s") 'isearch-with-region)
-;; (global-set-key (kbd "C-r") 'isearch-with-region-backwards)
-(global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
+(use-package helm
+  :ensure t
+  :bind (("M-x" . helm-M-x)
+         ("C-x C-f" . helm-find-files)
+         ("M-y" . helm-show-kill-ring)
+         ("C-x b" . 'helm-mini))
+  :config (setq helm-M-x-fuzzy-match t
+                helm-buffers-fuzzy-matching t
+                helm-recentf-fuzzy-match t))
 
-(helm-mode 1)
+(use-package projectile
+  :ensure t)
+(use-package helm-projectile
+  :ensure t)
+
+(use-package multiple-cursors
+  :ensure t
+  :config
+  (global-set-key (kbd "M-C-<down>") 'mc/mark-next-like-this)
+  (global-set-key (kbd "M-C-<up>") 'mc/mark-previous-like-this))
 
 (defalias 'yes-or-no-p 'y-or-n-p)
 (setq frame-title-format "Emacs - %f")
-;; (global-auto-complete-mode 1)
 (add-hook 'before-save-hook 'whitespace-cleanup)
 
 (setq mac-option-modifier nil
@@ -46,10 +95,26 @@
 (setq mouse-wheel-scroll-amount '(2 ((shift) . 2))) ;; one line at a time
 (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
 (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-(setq scroll-step 1
-      scroll-conservatively 10000) ;; keyboard scroll one line at a time
+(setq scroll-step 1 scroll-conservatively 10000) ;; keyboard scroll one line at a time
 
-(add-hook 'after-init-hook #'global-flycheck-mode)
+(use-package flycheck
+  :ensure t
+  :config
+  (setq-default flycheck-disabled-checkers '(javascript-jshint))
+  (setq flycheck-checkers '(javascript-eslint))
+  ;; use local eslint from node_modules before global
+  ;; http://emacs.stackexchange.com/questions/21205/flycheck-with-file-relative-eslint-executable
+  (defun my/use-eslint-from-node-modules ()
+    (let* ((root (locate-dominating-file
+                  (or (buffer-file-name) default-directory)
+                  "node_modules"))
+           (eslint (and root
+                        (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                          root))))
+      (when (and eslint (file-executable-p eslint))
+        (setq-local flycheck-javascript-eslint-executable eslint))))
+  (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
+  (add-hook 'after-init-hook #'global-flycheck-mode))
 
 (windmove-default-keybindings 'meta)
 
@@ -60,8 +125,7 @@
 (global-unset-key "\C-z")
 (global-unset-key "\C-x\C-z")
 
-(global-set-key (kbd "M-C-<down>") 'mc/mark-next-like-this)
-(global-set-key (kbd "M-C-<up>") 'mc/mark-previous-like-this)
+(global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
 (global-set-key (kbd "M-r") 'rgrep)
 
 (defun set-exec-path-from-shell-PATH ()
@@ -74,53 +138,54 @@
 (set-exec-path-from-shell-PATH)
 
 
-
 ;; Web modes
-(add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
-(add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
-(add-to-list 'auto-mode-alist '("\\.vue$" . vue-mode))
-(add-to-list 'auto-mode-alist '("\\.html$" . html-mode))
-(add-to-list 'auto-mode-alist '("\\.scss\\'" . css-mode))
+(use-package js2-mode
+  :ensure t
+  :config
+  (add-hook 'js2-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
+  (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+  (add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
+  (setq js-indent-level 2)
+  (setq js2-allow-keywords-as-property-names t)
+  (setq js2-bounce-indent-p nil)
+  (setq js2-cleanup-whitespace t)
+  (setq js2-global-externs
+    (quote
+     ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine")))
+  (setq js2-highlight-level 3)
+  (setq js2-idle-timer-delay 0.5)
+  (setq js2-ignored-warnings (quote ("msg.no.side.effects")))
+  (setq js2-indent-switch-body t)
+  (setq js2-mirror-mode nil)
+  (setq js2-strict-inconsistent-return-warning nil)
+  (setq js2-strict-missing-semi-warning nil))
 
-(add-hook 'web-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
-(add-hook 'js2-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
-(add-hook 'css-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
-(add-hook 'html-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
-(add-hook 'vue-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
+(use-package web-mode
+  :ensure t
+  :config
+  (setq web-mode-code-indent-offset 2)
+  (setq web-mode-comment-style 1)
+  (setq web-mode-enable-auto-closing nil)
+  (setq web-mode-enable-auto-indentation nil)
+  (setq web-mode-enable-auto-opening nil)
+  (setq web-mode-enable-auto-pairing nil)
+  (setq web-mode-enable-auto-quoting nil)
+  (add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.scss\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
+  ;; Hack to stop web-mode messing with whitespace faces
+  (add-hook 'web-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
+  (add-hook
+   'web-mode-hook
+   (lambda ()
+     (interactive)
+     (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
+     (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
+     (setq-default web-mode-comment-formats '(("javascript" . "//")))
 
-;; Hack to stop web-mode messing with whitespace faces
-(add-hook
- 'web-mode-hook
- (lambda ()
-   (interactive)
-   (global-whitespace-mode t)
-   (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
-   (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
-   (setq-default web-mode-comment-formats '(("javascript" . "//")))
-
-   (set (make-local-variable 'company-backends) '(company-web-html))))
-
-(add-hook 'web-mode-hook
-      (lambda ()
-    (web-mode-set-content-type "jsx")
-    (message "now set to: %s" web-mode-content-type)))
-
-(setq-default flycheck-disabled-checkers '(javascript-jshint))
-(setq flycheck-checkers '(javascript-eslint))
-
-;; use local eslint from node_modules before global
-;; http://emacs.stackexchange.com/questions/21205/flycheck-with-file-relative-eslint-executable
-(defun my/use-eslint-from-node-modules ()
-  (let* ((root (locate-dominating-file
-    (or (buffer-file-name) default-directory)
-    "node_modules"))
-     (eslint (and root
-          (expand-file-name "node_modules/eslint/bin/eslint.js"
-            root))))
-    (when (and eslint (file-executable-p eslint))
-      (setq-local flycheck-javascript-eslint-executable eslint))))
-(add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
-
+     (set (make-local-variable 'company-backends) '(company-web-html)))
+   (web-mode-set-content-type "jsx")
+   (message "now set to: %s" web-mode-content-type)))
 
 ;; Shell
 (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
@@ -151,21 +216,40 @@
 
 
 ;; Markdown
-(add-hook
- 'markdown-mode-hook
- (lambda ()
-   (local-set-key (kbd "M-<left>") #'windmove-left)
-   (local-set-key (kbd "M-<right>") #'windmove-right)
-   (local-set-key (kbd "M-<up>") #'windmove-up)
-   (local-set-key (kbd "M-<down>") #'windmove-down)
-   (local-set-key (kbd "<backspace>") #'backward-delete-char-untabify)))
+(use-package markdown-mode
+  :ensure t
+  :bind (("<backspace>" . backward-delete-char-untabify)))
 
-;; Autocomplete
-;; (eval-after-load 'company
-;;   '(prog
-;;     (define-key company-mode-map (kbd "M-RET") 'helm-company)
-;;     (define-key company-active-map (kbd "M-RET") 'helm-company)))
-(global-set-key (kbd "M-RET") 'company-complete)
+(use-package scala-mode
+  :ensure t)
+
+(use-package company
+  :ensure t
+  :bind (("M-RET" . company-complete))
+  :config (global-company-mode))
+
+(use-package magit
+  :ensure t
+  :config
+  (setq magit-cherry-buffer-name-format "*magit-cherry*")
+  (setq magit-commit-arguments (quote ("--no-verify")))
+  (setq magit-commit-show-diff nil)
+  (setq magit-diff-buffer-name-format "*magit-diff*")
+  (setq magit-diff-highlight-indentation (quote (("" . tabs))))
+  (setq magit-process-buffer-name-format "*magit-process*")
+  (setq magit-rebase-arguments (quote ("--autosquash")))
+  (setq magit-reflog-buffer-name-format "*magit-reflog*")
+  (setq magit-refs-buffer-name-format "*magit-branches*")
+  (setq magit-refs-sections-hook (quote (magit-insert-local-branches)))
+  (setq magit-refs-show-margin nil)
+  (setq magit-revert-buffers nil)
+  (setq magit-revision-buffer-name-format "*magit-commit*")
+  (setq magit-stash-buffer-name-format "*magit-stash*")
+  (setq magit-stashes-buffer-name-format "*magit-stashes*")
+  (setq magit-status-buffer-name-format "*magit-status: %a*")
+  (setq magit-visit-ref-behavior (quote (checkout-branch)))
+  )
+
 
 
 ;; Functions
@@ -209,7 +293,7 @@
   (make-variable-buffer-local 'write-file-functions)
   (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
 
-(defun save-buffer-without-whitespace-cleanup  ()
+(defun save-buffer-without-whitespace-cleanup ()
   (interactive)
   (let ((b (current-buffer))) ; memorize the buffer
     (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
@@ -218,28 +302,16 @@
       (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
     (save-buffer)))))))
 
-(defun ivarru-define-keys (keymap &rest defs)
-  (cond
-   ((null keymap) (setq keymap (current-local-map)))
-   ((eq keymap t) (setq keymap (current-global-map))))
-  (while defs (define-key keymap (pop defs) (pop defs))))
-
-
 ;; Customize
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(ac-auto-show-menu nil)
- '(ac-auto-start nil)
- '(ac-js2-evaluate-calls t)
- '(ac-trigger-key "M-RET")
  '(ansi-color-faces-vector
    [default default default italic underline success warning error])
  '(ansi-color-names-vector
    ["#212526" "#ff4b4b" "#b4fa70" "#fce94f" "#729fcf" "#ad7fa8" "#8cc4ff" "#eeeeec"])
- '(background-color "#202020")
  '(background-mode dark)
  '(backup-by-copying t)
  '(backup-directory-alist (quote (("." . "~/.emacs.d/saves"))))
@@ -257,7 +329,6 @@
  '(fill-column 100)
  '(foreground-color "#cccccc")
  '(global-auto-complete-mode nil)
- '(global-company-mode t)
  '(global-font-lock-mode t)
  '(global-whitespace-mode t)
  '(grep-find-ignored-directories
@@ -268,59 +339,17 @@
     (".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock")))
  '(helm-reuse-last-window-split-state t)
  '(helm-split-window-inside-p t)
- '(hippie-expand-dabbrev-as-symbol nil)
- '(hippie-expand-max-buffers 0)
- '(ido-auto-merge-work-directories-length -1)
- '(ido-case-fold t)
- '(ido-create-new-buffer (quote always))
- '(ido-ignore-buffers (quote ("^*Mini" "mini" "echo")))
- '(ido-max-work-file-list 200)
- '(ido-save-directory-list-file "~/.emacs.d/cache/ido.last")
- '(ido-use-virtual-buffers t)
  '(imenu-auto-rescan t)
  '(indent-tabs-mode nil)
  '(inhibit-startup-screen t)
- '(js-indent-level 2)
- '(js2-allow-keywords-as-property-names t)
- '(js2-basic-offset 4)
- '(js2-bounce-indent-p nil)
- '(js2-cleanup-whitespace t)
- '(js2-global-externs
-   (quote
-    ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine")))
- '(js2-highlight-level 3)
- '(js2-idle-timer-delay 0.5)
- '(js2-ignored-warnings (quote ("msg.no.side.effects")))
- '(js2-indent-switch-body t)
- '(js2-mirror-mode nil)
- '(js2-strict-inconsistent-return-warning nil)
- '(js2-strict-missing-semi-warning nil)
  '(kept-new-versions 2)
  '(kept-old-versions 2)
- '(magit-cherry-buffer-name-format "*magit-cherry*")
- '(magit-commit-arguments (quote ("--no-verify")))
- '(magit-commit-show-diff nil)
- '(magit-diff-buffer-name-format "*magit-diff*")
- '(magit-diff-highlight-indentation (quote (("" . tabs))))
- '(magit-process-buffer-name-format "*magit-process*")
- '(magit-rebase-arguments (quote ("--autosquash")))
- '(magit-reflog-buffer-name-format "*magit-reflog*")
- '(magit-refs-buffer-name-format "*magit-branches*")
- '(magit-refs-sections-hook (quote (magit-insert-local-branches)))
- '(magit-refs-show-margin nil)
- '(magit-revert-buffers nil t)
- '(magit-revision-buffer-name-format "*magit-commit*")
- '(magit-stash-buffer-name-format "*magit-stash*")
- '(magit-stashes-buffer-name-format "*magit-stashes*")
- '(magit-status-buffer-name-format "*magit-status: %a*")
- '(magit-visit-ref-behavior (quote (checkout-branch)))
- '(menu-bar-mode nil)
  '(minibuffer-prompt-properties
    (quote
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (company-web helm-company company typescript-mode swift-mode scss-mode vue-mode vue-html-mode virtualenvwrapper python-mode 2048-game helm w3m w3 rjsx-mode flow-minor-mode haskell-mode yasnippet yaml-mode web-mode tern-auto-complete scala-mode nodejs-repl multiple-cursors markdown-mode json-mode js2-mode flycheck evil-magit column-marker)))
+    (helm-projectile heml-projectile projectile which-key web-mode use-package scala-mode multiple-cursors markdown-mode magit js2-mode helm flycheck company)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)
@@ -328,39 +357,10 @@
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
  '(show-trailing-whitespace t)
- '(size-indication-mode nil)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
  '(version-control (quote never))
- '(vue-modes
-   (quote
-    ((:type template :name nil :mode vue-html-mode)
-     (:type template :name html :mode vue-html-mode)
-     (:type template :name jade :mode jade-mode)
-     (:type template :name pug :mode pug-mode)
-     (:type template :name slm :mode slim-mode)
-     (:type template :name slim :mode slim-mode)
-     (:type script :name nil :mode js-mode)
-     (:type script :name js :mode js2-mode)
-     (:type script :name es6 :mode js2-mode)
-     (:type script :name babel :mode js2-mode)
-     (:type script :name coffee :mode coffee-mode)
-     (:type script :name ts :mode typescript-mode)
-     (:type script :name typescript :mode typescript-mode)
-     (:type style :name nil :mode css-mode)
-     (:type style :name css :mode css-mode)
-     (:type style :name stylus :mode stylus-mode)
-     (:type style :name less :mode less-css-mode)
-     (:type style :name scss :mode css-mode)
-     (:type style :name sass :mode ssass-mode))))
- '(web-mode-code-indent-offset 2)
- '(web-mode-comment-style 1)
- '(web-mode-enable-auto-closing nil)
- '(web-mode-enable-auto-indentation nil)
- '(web-mode-enable-auto-opening nil)
- '(web-mode-enable-auto-pairing nil)
- '(web-mode-enable-auto-quoting nil)
  '(whitespace-style
    (quote
     (face spaces tabs newline space-mark tab-mark newline-mark trailing indentation)))
@@ -372,7 +372,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:family "Ubuntu Mono" :foundry "DAMA" :slant normal :weight normal :height 151 :width normal))))
+ '(default ((t (:family "Monaco" :foundry "DAMA" :slant normal :weight normal :height 110 :width normal))))
  '(column-marker-1 ((t (:background "dark red"))))
  '(helm-buffer-process ((t (:foreground "sienna1"))))
  '(helm-ff-directory ((t (:foreground "deep sky blue"))))

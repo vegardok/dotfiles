@@ -61,20 +61,28 @@
   :config
   (which-key-mode))
 
+(use-package projectile
+  :ensure t)
+(use-package helm-projectile
+  :ensure t)
+
 (use-package helm
   :ensure t
   :bind (("M-x" . helm-M-x)
          ("C-x C-f" . helm-find-files)
          ("M-y" . helm-show-kill-ring)
          ("C-x b" . 'helm-mini))
-  :config (setq helm-M-x-fuzzy-match t
-                helm-buffers-fuzzy-matching t
-                helm-recentf-fuzzy-match t))
-
-(use-package projectile
-  :ensure t)
-(use-package helm-projectile
-  :ensure t)
+  :config
+  (setq helm-M-x-fuzzy-match t)
+  (setq helm-buffers-fuzzy-matching t)
+  (setq helm-recentf-fuzzy-match t)
+  (add-to-list 'helm-mini-default-sources 'helm-source-projectile-files-in-all-projects-list 'append)
+  (helm-mode 1)
+  )
+(use-package helm-company
+  :ensure t
+  ;; :bind ("M-RET" . helm-company)
+  )
 
 (use-package multiple-cursors
   :ensure t
@@ -227,6 +235,8 @@
   :ensure t
   :bind (("M-RET" . company-complete))
   :config (global-company-mode))
+(use-package company-web
+  :ensure t)
 
 (use-package magit
   :ensure t
@@ -364,7 +374,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (helm-projectile heml-projectile projectile which-key web-mode use-package scala-mode multiple-cursors markdown-mode magit js2-mode helm flycheck company)))
+    (helm-company company-web helm-projectile heml-projectile projectile which-key web-mode use-package scala-mode multiple-cursors markdown-mode magit js2-mode helm flycheck company)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)
@@ -387,7 +397,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:family "Monaco" :foundry "DAMA" :slant normal :weight normal :height 110 :width normal))))
+ '(default ((t (:family "Ubuntu Mono" :foundry "DAMA" :slant normal :weight normal :height 151 :width normal))))
  '(column-marker-1 ((t (:background "dark red"))))
  '(helm-buffer-process ((t (:foreground "sienna1"))))
  '(helm-ff-directory ((t (:foreground "deep sky blue"))))

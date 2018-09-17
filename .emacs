@@ -96,9 +96,7 @@
    (global-whitespace-mode t)
    (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
    (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
-   (setq-default web-mode-comment-formats '(("javascript" . "//")))
-
-   (set (make-local-variable 'company-backends) '(company-web-html))))
+   (setq-default web-mode-comment-formats '(("javascript" . "//")))))
 
 (add-hook 'web-mode-hook
       (lambda ()
@@ -209,7 +207,7 @@
   (make-variable-buffer-local 'write-file-functions)
   (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
 
-(defun save-buffer-without-whitespace-cleanup  ()
+(defun save-buffer-without-whitespace-cleanup ()
   (interactive)
   (let ((b (current-buffer))) ; memorize the buffer
     (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
@@ -260,6 +258,7 @@
  '(backup-directory-alist (quote (("." . "~/.emacs.d/saves"))))
  '(calendar-week-start-day 1)
  '(column-number-mode t)
+ '(company-dabbrev-ignore-case (quote keep-prefix))
  '(create-lockfiles t)
  '(css-indent-offset 2)
  '(cursor-color "#cccccc")

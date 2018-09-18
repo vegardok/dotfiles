@@ -195,6 +195,9 @@
    (web-mode-set-content-type "jsx")
    (message "now set to: %s" web-mode-content-type)))
 
+(use-package json-mode
+  :ensure t)
+
 ;; Shell
 (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
 (add-hook 'shell-mode-hook (lambda() (setq show-trailing-whitespace nil)))

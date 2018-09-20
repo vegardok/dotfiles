@@ -48,14 +48,11 @@
 ;; Emacs UI
 
 ;;; Theme
-
 (load-theme 'deeper-blue)
 (if (not window-system)
-    (set-face-background 'default "unspecified-bg")) ;;  (selected-frame)
+    (set-face-background 'default "unspecified-bg"))
 
-;; (if (not window-system)
-;;      (set-face-background 'default "unspecified-bg" (selected-frame)))
-
+(menu-bar-mode -1)
 
 ;;; M-x font
 (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
@@ -203,8 +200,8 @@
    (web-mode-set-content-type "jsx")
    (message "now set to: %s" web-mode-content-type)))
 
-(use-package json-mode
-  :ensure t)
+(use-package json-mode :ensure t)
+(use-package nodejs-repl :ensure t)
 
 ;; Shell
 (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
@@ -246,10 +243,11 @@
   :ensure t
   :bind (("M-RET" . company-complete))
   :config (global-company-mode))
-(use-package company-web
-  :ensure t)
+
+(use-package company-web :ensure t)
 
 (use-package magit
+  :pin melpa-stable
   :ensure t
   :config
   (setq magit-cherry-buffer-name-format "*magit-cherry*")
@@ -270,8 +268,6 @@
   (setq magit-status-buffer-name-format "*magit-status: %a*")
   (setq magit-visit-ref-behavior (quote (checkout-branch)))
   )
-
-
 
 ;; Functions
 (defun isearch-with-region(&optional start end)
@@ -379,9 +375,6 @@
  '(minibuffer-prompt-properties
    (quote
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
- '(package-selected-packages
-   (quote
-    (helm-company company-web helm-projectile heml-projectile projectile which-key web-mode use-package scala-mode multiple-cursors markdown-mode magit js2-mode helm flycheck company)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)
@@ -413,5 +406,3 @@
  '(whitespace-newline ((t (:foreground "dim gray" :weight normal))))
  '(whitespace-space ((t (:foreground "#3f4554"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))
-
-

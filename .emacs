@@ -84,10 +84,6 @@
   (add-to-list 'helm-mini-default-sources 'helm-source-projectile-files-in-all-projects-list 'append)
   (helm-mode 1)
   )
-(use-package helm-company
-  :ensure t
-  ;; :bind ("M-RET" . helm-company)
-  )
 
 (use-package multiple-cursors
   :ensure t
@@ -159,6 +155,7 @@
   (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
   (setq js-indent-level 2)
+  (setq js-switch-indent-offset 2)
   (setq js2-allow-keywords-as-property-names t)
   (setq js2-bounce-indent-p nil)
   (setq js2-cleanup-whitespace t)
@@ -168,7 +165,6 @@
   (setq js2-highlight-level 3)
   (setq js2-idle-timer-delay 0.5)
   (setq js2-ignored-warnings (quote ("msg.no.side.effects")))
-  (setq js2-indent-switch-body t)
   (setq js2-mirror-mode nil)
   (setq js2-strict-inconsistent-return-warning nil)
   (setq js2-strict-missing-semi-warning nil))
@@ -241,10 +237,14 @@
 
 (use-package company
   :ensure t
-  :bind (("M-RET" . company-complete))
+  ;; :bind (("M-RET" . company-complete))
   :config (global-company-mode))
 
 (use-package company-web :ensure t)
+
+(use-package helm-company
+  :ensure t
+  :bind ("M-RET" . helm-company))
 
 (use-package magit
   :pin melpa-stable

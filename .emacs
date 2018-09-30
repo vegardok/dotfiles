@@ -1,4 +1,4 @@
-(setq init-dir (file-name-directory (or load-file-name (buffer-file-name))))
+(setq init-dir "~/.emacs.d/")
 (package-initialize)
 
 (defvar gnu '("gnu" . "https://elpa.gnu.org/packages/"))
@@ -45,12 +45,18 @@
    (package-refresh-contents)
    (init--install-packages)))
 
-
 (use-package try
   :ensure t)
 
-
 ;; Emacs UI
+=======
+;;; Theme
+(load-theme 'deeper-blue)
+(if (not window-system)
+    (set-face-background 'default "unspecified-bg"))
+
+(menu-bar-mode -1)
+
 ;;; M-x font
 (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
 (defun my-minibuffer-setup ()
@@ -170,16 +176,16 @@
   (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
   (setq js-indent-level 2)
+  (setq js-switch-indent-offset 2)
   (setq js2-allow-keywords-as-property-names t)
   (setq js2-bounce-indent-p nil)
   (setq js2-cleanup-whitespace t)
   (setq js2-global-externs
-    (quote
-     ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine")))
+        (quote
+         ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine")))
   (setq js2-highlight-level 3)
   (setq js2-idle-timer-delay 0.5)
   (setq js2-ignored-warnings (quote ("msg.no.side.effects")))
-  (setq js2-indent-switch-body t)
   (setq js2-mirror-mode nil)
   (setq js2-strict-inconsistent-return-warning nil)
   (setq js2-strict-missing-semi-warning nil))
@@ -214,6 +220,9 @@
      (set (make-local-variable 'company-backends) '(company-web-html)))
    (web-mode-set-content-type "jsx")
    (message "now set to: %s" web-mode-content-type)))
+
+(use-package json-mode :ensure t)
+(use-package nodejs-repl :ensure t)
 
 ;; Shell
 (add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
@@ -253,12 +262,17 @@
 
 (use-package company
   :ensure t
-  :bind (("M-RET" . company-complete))
+  ;; :bind (("M-RET" . company-complete))
   :config (global-company-mode))
-(use-package company-web
-  :ensure t)
+
+(use-package company-web :ensure t)
+
+(use-package helm-company
+  :ensure t
+  :bind ("M-RET" . helm-company))
 
 (use-package magit
+  :pin melpa-stable
   :ensure t
   :config
   (setq magit-cherry-buffer-name-format "*magit-cherry*")
@@ -283,27 +297,25 @@
 (use-package haskell-mode
   :ensure t)
 
-
-
 ;; Functions
 (defun isearch-with-region(&optional start end)
   (interactive "r")
   (if (region-active-p)
       (progn
-    (message "fancy search")
-    (let ((string (buffer-substring-no-properties start end)))
-      (deactivate-mark)
-      (isearch-resume string nil nil t string nil)))
+        (message "fancy search")
+        (let ((string (buffer-substring-no-properties start end)))
+          (deactivate-mark)
+          (isearch-resume string nil nil t string nil)))
     (call-interactively 'isearch-forward-regexp)))
 
 (defun isearch-with-region-backwards(&optional start end)
   (interactive "r")
   (if (region-active-p)
       (progn
-    (message "fancy search")
-    (let ((string (buffer-substring-no-properties start end)))
-      (deactivate-mark)
-      (isearch-resume string nil nil nil string nil)))
+        (message "fancy search")
+        (let ((string (buffer-substring-no-properties start end)))
+          (deactivate-mark)
+          (isearch-resume string nil nil nil string nil)))
     (call-interactively 'isearch-backward-regexp)))
 
 
@@ -317,8 +329,8 @@
       (message "%d" (point))
       (beginning-of-line)
       (if (looking-at (concat "^ *" (regexp-quote comment-start)))
-      (forward-line 1)
-    (replace-match "\\1"))))
+          (forward-line 1)
+        (replace-match "\\1"))))
   ;; Return nil for the benefit of `write-file-functions'.
   nil)
 
@@ -331,9 +343,9 @@
   (let ((b (current-buffer))) ; memorize the buffer
     (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
       (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-    (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
-      (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-    (save-buffer)))))))
+        (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
+          (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+            (save-buffer)))))))
 
 ;;; Grep
 (defun my-compile-goto-error-same-window ()
@@ -368,10 +380,6 @@
  '(create-lockfiles t)
  '(css-indent-offset 2)
  '(cursor-color "#cccccc")
- '(custom-enabled-themes (quote (deeper-blue)))
- '(custom-safe-themes
-   (quote
-    ("20070e2f1b2f738568a8b1eeb53e413d427cb24a129e37951255520c51d152bf" "0c311fb22e6197daba9123f43da98f273d2bfaeeaeb653007ad1ee77f0003037" default)))
  '(delete-old-versions t)
  '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
  '(fill-column 100)
@@ -395,9 +403,6 @@
  '(minibuffer-prompt-properties
    (quote
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
- '(package-selected-packages
-   (quote
-    (try haskell-mode nodejs-repl helm-company company-web helm-projectile heml-projectile projectile which-key web-mode use-package scala-mode multiple-cursors markdown-mode magit js2-mode helm flycheck company)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)

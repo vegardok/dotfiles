@@ -46,6 +46,8 @@
    (init--install-packages)))
 
 
+(use-package try
+  :ensure t)
 
 
 ;; Emacs UI
@@ -54,6 +56,7 @@
 (defun my-minibuffer-setup ()
   (set (make-local-variable 'face-remapping-alist)
        '((default :height 3.0))))
+(defalias 'list-buffers 'ibuffer)
 
 (use-package which-key
   :ensure t
@@ -79,6 +82,19 @@
   (add-to-list 'helm-mini-default-sources 'helm-source-projectile-files-in-all-projects-list 'append)
   (helm-mode 1)
   )
+
+(use-package helm-swoop
+  :ensure t
+  :bind (("C-s" . helm-swoop)
+         :map helm-swoop-map
+         ("C-r" . helm-previous-line)
+         ("C-s" . helm-next-line)
+         :map helm-multi-swoop-map
+         ("C-s" . helm-next-line)
+         ("C-r" . helm-previous-line))
+  :config
+  (setq helm-swoop-pre-input-function (lambda () "")))
+
 (use-package helm-company
   :ensure t
   ;; :bind ("M-RET" . helm-company)
@@ -167,6 +183,10 @@
   (setq js2-mirror-mode nil)
   (setq js2-strict-inconsistent-return-warning nil)
   (setq js2-strict-missing-semi-warning nil))
+
+
+(use-package nodejs-repl
+  :ensure t)
 
 (use-package web-mode
   :ensure t
@@ -259,6 +279,9 @@
   (setq magit-status-buffer-name-format "*magit-status: %a*")
   (setq magit-visit-ref-behavior (quote (checkout-branch)))
   )
+
+(use-package haskell-mode
+  :ensure t)
 
 
 
@@ -374,7 +397,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (helm-company company-web helm-projectile heml-projectile projectile which-key web-mode use-package scala-mode multiple-cursors markdown-mode magit js2-mode helm flycheck company)))
+    (try haskell-mode nodejs-repl helm-company company-web helm-projectile heml-projectile projectile which-key web-mode use-package scala-mode multiple-cursors markdown-mode magit js2-mode helm flycheck company)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)

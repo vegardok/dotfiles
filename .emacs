@@ -45,8 +45,11 @@
    (package-refresh-contents)
    (init--install-packages)))
 
-;; Emacs UI
+(use-package try
+  :ensure t)
 
+;; Emacs UI
+=======
 ;;; Theme
 (load-theme 'deeper-blue)
 (if (not window-system)
@@ -59,6 +62,7 @@
 (defun my-minibuffer-setup ()
   (set (make-local-variable 'face-remapping-alist)
        '((default :height 3.0))))
+(defalias 'list-buffers 'ibuffer)
 
 (use-package which-key
   :ensure t
@@ -91,6 +95,23 @@
 
 (use-package helm-ls-git :ensure t)
 
+
+(use-package helm-swoop
+  :ensure t
+  :bind (("C-s" . helm-swoop)
+         :map helm-swoop-map
+         ("C-r" . helm-previous-line)
+         ("C-s" . helm-next-line)
+         :map helm-multi-swoop-map
+         ("C-s" . helm-next-line)
+         ("C-r" . helm-previous-line))
+  :config
+  (setq helm-swoop-pre-input-function (lambda () "")))
+
+(use-package helm-company
+  :ensure t
+  ;; :bind ("M-RET" . helm-company)
+  )
 
 (use-package multiple-cursors
   :ensure t
@@ -175,6 +196,10 @@
   (setq js2-mirror-mode nil)
   (setq js2-strict-inconsistent-return-warning nil)
   (setq js2-strict-missing-semi-warning nil))
+
+
+(use-package nodejs-repl
+  :ensure t)
 
 (use-package web-mode
   :ensure t
@@ -275,6 +300,9 @@
   (setq magit-status-buffer-name-format "*magit-status: %a*")
   (setq magit-visit-ref-behavior (quote (checkout-branch)))
   )
+
+(use-package haskell-mode
+  :ensure t)
 
 ;; Functions
 (defun isearch-with-region(&optional start end)

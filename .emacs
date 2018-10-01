@@ -81,9 +81,16 @@
   (setq helm-M-x-fuzzy-match t)
   (setq helm-buffers-fuzzy-matching t)
   (setq helm-recentf-fuzzy-match t)
-  (add-to-list 'helm-mini-default-sources 'helm-source-projectile-files-in-all-projects-list 'append)
-  (helm-mode 1)
-  )
+
+  (setq helm-mini-default-sources
+        '(helm-source-buffers-list
+          helm-source-ls-git
+          helm-source-recentf
+          helm-source-buffer-not-found))
+  (helm-mode 1))
+
+(use-package helm-ls-git :ensure t)
+
 
 (use-package multiple-cursors
   :ensure t

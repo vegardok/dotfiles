@@ -48,8 +48,15 @@
 (use-package try
   :ensure t)
 
+(use-package diminish
+  :ensure t
+  :config
+  (diminish 'global-whitespace-mode)
+  (diminish 'eldoc-mode)
+  )
+
 ;; Emacs UI
-=======
+
 ;;; Theme
 (load-theme 'deeper-blue)
 (if (not window-system)
@@ -72,11 +79,13 @@
 
 (use-package projectile
   :ensure t)
+
 (use-package helm-projectile
   :ensure t)
 
 (use-package helm
   :ensure t
+  :diminish helm-mode
   :bind (("M-x" . helm-M-x)
          ("C-x C-f" . helm-find-files)
          ("M-y" . helm-show-kill-ring)
@@ -85,7 +94,8 @@
   (setq helm-M-x-fuzzy-match t)
   (setq helm-buffers-fuzzy-matching t)
   (setq helm-recentf-fuzzy-match t)
-  (add-to-list 'helm-mini-default-sources 'helm-source-projectile-files-in-all-projects-list 'append)
+  (add-to-list 'helm-mini-default-sources
+   'helm-source-projectile-files-in-all-projects-list 'append)
   (helm-mode 1)
   )
 
@@ -100,11 +110,6 @@
          ("C-r" . helm-previous-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
-
-(use-package helm-company
-  :ensure t
-  ;; :bind ("M-RET" . helm-company)
-  )
 
 (use-package multiple-cursors
   :ensure t
@@ -129,6 +134,7 @@
 
 (use-package flycheck
   :ensure t
+  :diminish flycheck-mode
   :config
   (setq-default flycheck-disabled-checkers '(javascript-jshint))
   (setq flycheck-checkers '(javascript-eslint))
@@ -262,14 +268,11 @@
 
 (use-package company
   :ensure t
-  ;; :bind (("M-RET" . company-complete))
+  :diminish company-mode
+  :bind (("M-RET" . company-complete))
   :config (global-company-mode))
 
 (use-package company-web :ensure t)
-
-(use-package helm-company
-  :ensure t
-  :bind ("M-RET" . helm-company))
 
 (use-package magit
   :pin melpa-stable

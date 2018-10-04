@@ -73,7 +73,9 @@
 (use-package projectile
   :ensure t)
 (use-package helm-projectile
-  :ensure t)
+  :ensure t
+  :bind ("M-r" . helm-projectile-grep)
+  )
 
 (use-package helm
   :ensure t
@@ -107,11 +109,6 @@
          ("C-r" . helm-previous-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
-
-(use-package helm-company
-  :ensure t
-  ;; :bind ("M-RET" . helm-company)
-  )
 
 (use-package multiple-cursors
   :ensure t
@@ -163,7 +160,6 @@
 (global-unset-key "\C-x\C-z")
 
 (global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
-(global-set-key (kbd "M-r") 'rgrep)
 
 (defun set-exec-path-from-shell-PATH ()
   "Set up Emacs' `exec-path' and PATH environment variable to match that used by the user's shell.

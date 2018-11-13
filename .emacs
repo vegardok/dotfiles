@@ -64,7 +64,6 @@
 
 (menu-bar-mode -1)
 
-;;; M-x font
 (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
 (defun my-minibuffer-setup ()
   (set (make-local-variable 'face-remapping-alist)
@@ -82,8 +81,9 @@
 
 (use-package helm-projectile
   :ensure t
-  :bind ("M-r" . helm-projectile-grep)
-  )
+  :bind
+  ("M-r" . helm-projectile-grep)
+  ("C-x x" . helm-projectile))
 
 (use-package helm
   :ensure t
@@ -101,6 +101,7 @@
           helm-source-ls-git
           helm-source-recentf
           helm-source-buffer-not-found))
+  (setq helm-grep-file-path-style 'relative)
   (helm-mode 1))
 
 (use-package helm-ls-git :ensure t)
@@ -231,6 +232,8 @@
      (set (make-local-variable 'company-backends) '(company-web-html)))
    (web-mode-set-content-type "jsx")
    (message "now set to: %s" web-mode-content-type)))
+
+(use-package rjsx-mode :ensure t)
 
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
@@ -411,6 +414,9 @@
  '(minibuffer-prompt-properties
    (quote
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+ '(package-selected-packages
+   (quote
+    (diminish which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit jsx-mode json-mode helm-swoop helm-projectile helm-ls-git helm-company haskell-mode flycheck company-web)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)

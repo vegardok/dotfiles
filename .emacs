@@ -65,10 +65,21 @@
 (menu-bar-mode -1)
 
 ;;; M-x font
-(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
-(defun my-minibuffer-setup ()
-  (set (make-local-variable 'face-remapping-alist)
-       '((default :height 3.0))))
+(cond
+ ((string-equal system-type "gnu/linux")
+  (progn
+    (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+    (defun my-minibuffer-setup ()
+      (set (make-local-variable 'face-remapping-alist)
+           '((default :height 3.0))))))
+ ((string-equal system-type "darwin")
+  (progn
+    (menu-bar-mode)
+    (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+    (defun my-minibuffer-setup ()
+      (set (make-local-variable 'face-remapping-alist)
+           '((default :height 2.0 )))))))
+
 (defalias 'list-buffers 'ibuffer)
 
 (use-package which-key
@@ -95,7 +106,7 @@
   (setq helm-buffers-fuzzy-matching t)
   (setq helm-recentf-fuzzy-match t)
   (add-to-list 'helm-mini-default-sources
-   'helm-source-projectile-files-in-all-projects-list 'append)
+               'helm-source-projectile-files-in-all-projects-list 'append)
   (helm-mode 1)
   )
 
@@ -189,6 +200,7 @@
   (setq js2-mirror-mode nil)
   (setq js2-strict-inconsistent-return-warning nil)
   (setq js2-strict-missing-semi-warning nil))
+(use-package rjsx-mode :ensure t)
 
 
 (use-package nodejs-repl
@@ -264,9 +276,20 @@
   :ensure t
   :diminish company-mode
   :bind (("M-RET" . company-complete))
-  :config (global-company-mode))
+  :config
+  (global-company-mode)
+  (setq company-minimum-prefix-length 1)
+  (setq company-idle-delay 0)
+  )
 
 (use-package company-web :ensure t)
+
+(use-package tern
+  :ensure t
+  :config  (add-hook 'js-mode-hook (lambda () (tern-mode t))))
+(use-package company-tern
+  :ensure
+  :config (add-to-list 'company-backends 'company-tern))
 
 (use-package magit
   :pin melpa-stable
@@ -400,6 +423,9 @@
  '(minibuffer-prompt-properties
    (quote
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+ '(package-selected-packages
+   (quote
+    (rjsx-mode company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode nodejs-repl multiple-cursors markdown-mode magit json-mode js2-mode helm-swoop helm-projectile helm-company haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)
@@ -431,3 +457,4 @@
  '(whitespace-newline ((t (:foreground "dim gray" :weight normal))))
  '(whitespace-space ((t (:foreground "#3f4554"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))
+(put 'downcase-region 'disabled nil)

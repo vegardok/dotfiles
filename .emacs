@@ -76,6 +76,11 @@
 (add-hook 'html-mode-hook '(lambda () (display-line-numbers-mode)))
 (add-hook 'css-mode-hook '(lambda () (display-line-numbers-mode)))
 
+;; powerline?
+(use-package powerline
+  :ensure t
+  :config (powerline-default-theme))
+
 ;;; M-x font
 (cond
  ((string-equal system-type "gnu/linux")
@@ -445,7 +450,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+    (powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)

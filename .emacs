@@ -69,7 +69,12 @@
 (global-hl-line-mode)
 (blink-cursor-mode 0)
 (menu-bar-mode -1)
-(global-display-line-numbers-mode 1)
+
+(add-hook 'js-mode-hook '(lambda () (display-line-numbers-mode)))
+(add-hook 'web-mode-hook '(lambda () (display-line-numbers-mode)))
+(add-hook 'emacs-lisp-mode-hook '(lambda () (display-line-numbers-mode)))
+(add-hook 'html-mode-hook '(lambda () (display-line-numbers-mode)))
+(add-hook 'css-mode-hook '(lambda () (display-line-numbers-mode)))
 
 ;;; M-x font
 (cond

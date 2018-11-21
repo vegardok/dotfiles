@@ -53,6 +53,8 @@
   :config
   (diminish 'global-whitespace-mode)
   (diminish 'eldoc-mode)
+  (diminish 'auto-revert-mode)
+  (diminish 'tern-mode)
   )
 
 ;; Emacs UI

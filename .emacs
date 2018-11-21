@@ -61,8 +61,13 @@
 (load-theme 'deeper-blue)
 (if (not window-system)
     (set-face-background 'default "unspecified-bg"))
-
+(set-face-foreground 'line-number-current-line "spring green")
+(hl-line-mode 1)
+(set-face-background 'hl-line "#2d3b42")
+(global-hl-line-mode)
+(blink-cursor-mode 0)
 (menu-bar-mode -1)
+(global-display-line-numbers-mode 1)
 
 ;;; M-x font
 (cond
@@ -79,7 +84,6 @@
     (defun my-minibuffer-setup ()
       (set (make-local-variable 'face-remapping-alist)
            '((default :height 2.0 )))))))
-
 (defalias 'list-buffers 'ibuffer)
 
 (use-package which-key
@@ -92,7 +96,10 @@
   :ensure t)
 
 (use-package helm-projectile
-  :ensure t)
+  :ensure t
+  :bind
+  ("M-r" . helm-projectile-grep)
+  ("C-x x" . helm-projectile))
 
 (use-package helm
   :ensure t
@@ -105,10 +112,15 @@
   (setq helm-M-x-fuzzy-match t)
   (setq helm-buffers-fuzzy-matching t)
   (setq helm-recentf-fuzzy-match t)
-  (add-to-list 'helm-mini-default-sources
-               'helm-source-projectile-files-in-all-projects-list 'append)
-  (helm-mode 1)
-  )
+  (setq helm-mini-default-sources
+        '(helm-source-buffers-list
+          helm-source-ls-git
+          helm-source-recentf
+          helm-source-buffer-not-found))
+  (setq helm-grep-file-path-style 'relative)
+  (helm-mode 1))
+
+(use-package helm-ls-git :ensure t)
 
 (use-package helm-swoop
   :ensure t
@@ -173,7 +185,6 @@
 (global-unset-key "\C-x\C-z")
 
 (global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
-(global-set-key (kbd "M-r") 'rgrep)
 
 (use-package exec-path-from-shell
   :ensure t
@@ -232,6 +243,8 @@
      (set (make-local-variable 'company-backends) '(company-web-html)))
    (web-mode-set-content-type "jsx")
    (message "now set to: %s" web-mode-content-type)))
+
+(use-package rjsx-mode :ensure t)
 
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
@@ -425,7 +438,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (rjsx-mode company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode nodejs-repl multiple-cursors markdown-mode magit json-mode js2-mode helm-swoop helm-projectile helm-company haskell-mode flycheck diminish company-web)))
+    (company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
  '(require-final-newline t)
  '(ruby-deep-arglist nil)

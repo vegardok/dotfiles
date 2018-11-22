@@ -66,12 +66,8 @@
 (global-hl-line-mode)
 (blink-cursor-mode 0)
 (menu-bar-mode -1)
+(add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
 
-(add-hook 'js-mode-hook '(lambda () (display-line-numbers-mode)))
-(add-hook 'web-mode-hook '(lambda () (display-line-numbers-mode)))
-(add-hook 'emacs-lisp-mode-hook '(lambda () (display-line-numbers-mode)))
-(add-hook 'html-mode-hook '(lambda () (display-line-numbers-mode)))
-(add-hook 'css-mode-hook '(lambda () (display-line-numbers-mode)))
 (use-package whitespace
   :diminish (global-whitespace-mode
              whitespace-mode

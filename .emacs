@@ -51,11 +51,8 @@
 (use-package diminish
   :ensure t
   :config
-  (diminish 'global-whitespace-mode)
   (diminish 'eldoc-mode)
-  (diminish 'auto-revert-mode)
-  (diminish 'tern-mode)
-  )
+  (diminish 'auto-revert-mode))
 
 ;; Emacs UI
 
@@ -75,6 +72,10 @@
 (add-hook 'emacs-lisp-mode-hook '(lambda () (display-line-numbers-mode)))
 (add-hook 'html-mode-hook '(lambda () (display-line-numbers-mode)))
 (add-hook 'css-mode-hook '(lambda () (display-line-numbers-mode)))
+(use-package whitespace
+  :diminish (global-whitespace-mode
+             whitespace-mode
+             whitespace-newline-mode))
 
 ;; powerline?
 (use-package powerline
@@ -311,7 +312,8 @@
 
 (use-package tern
   :ensure t
-  :config  (add-hook 'js-mode-hook (lambda () (tern-mode t))))
+  :diminish tern-mode
+  :config (add-hook 'js-mode-hook (lambda () (tern-mode t))))
 (use-package company-tern
   :ensure
   :config (add-to-list 'company-backends 'company-tern))
@@ -319,6 +321,8 @@
 (use-package magit
   :pin melpa-stable
   :ensure t
+  :diminish (magit-auto-revert-mode
+             auto-revert-mode)
   :config
   (setq magit-cherry-buffer-name-format "*magit-cherry*")
   (setq magit-commit-arguments (quote ("--no-verify")))

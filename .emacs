@@ -259,21 +259,20 @@
 (use-package nodejs-repl :ensure t)
 
 ;; Shell
-(add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
-(add-hook 'shell-mode-hook (lambda() (setq show-trailing-whitespace nil)))
-
-(defun clear-shell ()
-  (interactive)
-  (let ((comint-buffer-maximum-size 0))
-    (comint-truncate-buffer)))
-
-(add-hook
- 'shell-mode-hook
- (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
-(add-hook
- 'nodejs-repl-mode-hook
- (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
-
+(let ((silencio (lambda ()
+                  (company-mode -1)
+                  (setq show-trailing-whitespace nil))))
+  (defun clear-shell ()
+    (interactive)
+    (let ((comint-buffer-maximum-size 0))
+      (comint-truncate-buffer)))
+  (add-hook 'term-mode-hook silencio)
+  (add-hook 'shell-mode-hook silencio)
+  (add-hook 'helm-minibuffer-set-up-hook silencio)
+  (add-hook 'nodejs-repl-mode-hook silencio)
+  (add-hook 'magit-mode-hook (lambda () (company-mode -1)))
+  (add-hook 'shell-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
+  (add-hook 'nodejs-repl-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell))))
 
 ;; EDiff
 (defvar my-ediff-last-windows nil)

@@ -1,3 +1,6 @@
+(load-file "~/dotfiles/sensible-defaults.el")
+(sensible-defaults/use-all-settings)
+
 (setq init-dir "~/.emacs.d/")
 (package-initialize)
 
@@ -148,10 +151,6 @@
   :config
   (global-set-key (kbd "M-C-<down>") 'mc/mark-next-like-this)
   (global-set-key (kbd "M-C-<up>") 'mc/mark-previous-like-this))
-
-(defalias 'yes-or-no-p 'y-or-n-p)
-(setq frame-title-format "Emacs - %f")
-(add-hook 'before-save-hook 'whitespace-cleanup)
 
 (setq mac-option-modifier nil
       mac-command-modifier 'meta
@@ -449,9 +448,8 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+    (helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
- '(require-final-newline t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps (quote ("*")))
  '(scroll-bar-mode nil)

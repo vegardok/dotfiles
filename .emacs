@@ -71,6 +71,9 @@
 (menu-bar-mode -1)
 (add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
 (add-hook 'prog-mode-hook (lambda () (yas-minor-mode t)))
+(add-hook 'prog-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
+(setq frame-title-format '((:eval (projectile-project-name))))
+
 
 (use-package whitespace
   :diminish (global-whitespace-mode
@@ -129,7 +132,9 @@
         '(helm-source-buffers-list
           helm-source-ls-git
           helm-source-recentf
-          helm-source-buffer-not-found))
+          helm-source-buffer-not-found
+          ;; helm-projectile-sources-list
+          ))
   (setq helm-grep-file-path-style 'relative)
   (helm-mode 1))
 
@@ -137,13 +142,12 @@
 
 (use-package helm-swoop
   :ensure t
-  :bind (("C-s" . helm-swoop)
-         :map helm-swoop-map
-         ("C-r" . helm-previous-line)
-         ("C-s" . helm-next-line)
-         :map helm-multi-swoop-map
-         ("C-s" . helm-next-line)
-         ("C-r" . helm-previous-line))
+  :bind (
+   ()
+   :map prog-mode-map (("C-s" . helm-swoop))
+   :map helm-swoop-map
+   ("C-r" . helm-previous-line)
+   ("C-s" . helm-next-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
 
@@ -193,7 +197,7 @@
 (global-unset-key "\C-z")
 (global-unset-key "\C-x\C-z")
 
-(global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
+;; (global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
 
 (use-package exec-path-from-shell
   :ensure t
@@ -203,7 +207,6 @@
 (use-package js2-mode
   :ensure t
   :config
-  (add-hook 'js2-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
   (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
   (setq js-indent-level 2)
@@ -222,7 +225,6 @@
   (setq js2-strict-missing-semi-warning nil))
 (use-package rjsx-mode :ensure t)
 
-
 (use-package nodejs-repl
   :ensure t)
 
@@ -240,7 +242,6 @@
   (add-to-list 'auto-mode-alist '("\\.scss\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
   ;; Hack to stop web-mode messing with whitespace faces
-  (add-hook 'web-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
   (add-hook
    'web-mode-hook
    (lambda ()
@@ -271,6 +272,7 @@
   (add-hook 'helm-minibuffer-set-up-hook silencio)
   (add-hook 'nodejs-repl-mode-hook silencio)
   (add-hook 'magit-mode-hook (lambda () (company-mode -1)))
+  (add-hook 'text-mode-hook (lambda () (company-mode -1)))
   (add-hook 'shell-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
   (add-hook 'nodejs-repl-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell))))
 
@@ -336,6 +338,7 @@
   (setq magit-stashes-buffer-name-format "*magit-stashes*")
   (setq magit-status-buffer-name-format "*magit-status: %a*")
   (setq magit-visit-ref-behavior (quote (checkout-branch)))
+  (setq magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1))
   )
 
 (use-package haskell-mode

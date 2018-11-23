@@ -70,6 +70,7 @@
 (blink-cursor-mode 0)
 (menu-bar-mode -1)
 (add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
+(add-hook 'prog-mode-hook (lambda () (yas-minor-mode t)))
 
 (use-package whitespace
   :diminish (global-whitespace-mode
@@ -339,6 +340,15 @@
 
 (use-package haskell-mode
   :ensure t)
+
+(use-package yasnippet
+  :ensure t)
+(use-package yasnippet-snippets
+  :ensure t)
+
+(use-package helm-c-yasnippet
+  :ensure t
+  :bind (("C-c y" . helm-yas-complete)))
 
 ;; Functions
 (defun isearch-with-region(&optional start end)

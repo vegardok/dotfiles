@@ -1,3 +1,6 @@
+(load-file "~/dotfiles/sensible-defaults.el")
+(sensible-defaults/use-all-settings)
+
 (setq init-dir "~/.emacs.d/")
 (package-initialize)
 
@@ -51,9 +54,8 @@
 (use-package diminish
   :ensure t
   :config
-  (diminish 'global-whitespace-mode)
   (diminish 'eldoc-mode)
-  )
+  (diminish 'auto-revert-mode))
 
 ;; Emacs UI
 
@@ -61,13 +63,43 @@
 (load-theme 'deeper-blue)
 (if (not window-system)
     (set-face-background 'default "unspecified-bg"))
-
+(set-face-foreground 'line-number-current-line "spring green")
+(hl-line-mode 1)
+(set-face-background 'hl-line "#2d3b42")
+(global-hl-line-mode)
+(blink-cursor-mode 0)
 (menu-bar-mode -1)
+(add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
+(add-hook 'prog-mode-hook (lambda () (yas-minor-mode t)))
+(add-hook 'prog-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
+(setq frame-title-format '((:eval (projectile-project-name))))
 
-(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
-(defun my-minibuffer-setup ()
-  (set (make-local-variable 'face-remapping-alist)
-       '((default :height 3.0))))
+
+(use-package whitespace
+  :diminish (global-whitespace-mode
+             whitespace-mode
+             whitespace-newline-mode))
+
+;; powerline?
+(use-package powerline
+  :ensure t
+  :config (powerline-default-theme))
+
+;;; M-x font
+(cond
+ ((string-equal system-type "gnu/linux")
+  (progn
+    (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+    (defun my-minibuffer-setup ()
+      (set (make-local-variable 'face-remapping-alist)
+           '((default :height 3.0))))))
+ ((string-equal system-type "darwin")
+  (progn
+    (menu-bar-mode)
+    (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+    (defun my-minibuffer-setup ()
+      (set (make-local-variable 'face-remapping-alist)
+           '((default :height 2.0 )))))))
 (defalias 'list-buffers 'ibuffer)
 
 (use-package which-key
@@ -100,7 +132,9 @@
         '(helm-source-buffers-list
           helm-source-ls-git
           helm-source-recentf
-          helm-source-buffer-not-found))
+          helm-source-buffer-not-found
+          ;; helm-projectile-sources-list
+          ))
   (setq helm-grep-file-path-style 'relative)
   (helm-mode 1))
 
@@ -108,13 +142,12 @@
 
 (use-package helm-swoop
   :ensure t
-  :bind (("C-s" . helm-swoop)
-         :map helm-swoop-map
-         ("C-r" . helm-previous-line)
-         ("C-s" . helm-next-line)
-         :map helm-multi-swoop-map
-         ("C-s" . helm-next-line)
-         ("C-r" . helm-previous-line))
+  :bind (
+   ()
+   :map prog-mode-map (("C-s" . helm-swoop))
+   :map helm-swoop-map
+   ("C-r" . helm-previous-line)
+   ("C-s" . helm-next-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
 
@@ -123,10 +156,6 @@
   :config
   (global-set-key (kbd "M-C-<down>") 'mc/mark-next-like-this)
   (global-set-key (kbd "M-C-<up>") 'mc/mark-previous-like-this))
-
-(defalias 'yes-or-no-p 'y-or-n-p)
-(setq frame-title-format "Emacs - %f")
-(add-hook 'before-save-hook 'whitespace-cleanup)
 
 (setq mac-option-modifier nil
       mac-command-modifier 'meta
@@ -168,23 +197,16 @@
 (global-unset-key "\C-z")
 (global-unset-key "\C-x\C-z")
 
-(global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
+;; (global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
 
-(defun set-exec-path-from-shell-PATH ()
-  "Set up Emacs' `exec-path' and PATH environment variable to match that used by the user's shell.
-   This is particularly useful under Mac OSX, where GUI apps are not started from a shell."
-  (interactive)
-  (let ((path-from-shell (replace-regexp-in-string "[ \t\n]*$" "" (shell-command-to-string "$SHELL --login -i -c 'echo $PATH'"))))
-    (setenv "PATH" path-from-shell)
-    (setq exec-path (split-string path-from-shell path-separator))))
-(set-exec-path-from-shell-PATH)
-
+(use-package exec-path-from-shell
+  :ensure t
+  :config (exec-path-from-shell-initialize))
 
 ;; Web modes
 (use-package js2-mode
   :ensure t
   :config
-  (add-hook 'js2-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
   (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
   (add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
   (setq js-indent-level 2)
@@ -201,7 +223,7 @@
   (setq js2-mirror-mode nil)
   (setq js2-strict-inconsistent-return-warning nil)
   (setq js2-strict-missing-semi-warning nil))
-
+(use-package rjsx-mode :ensure t)
 
 (use-package nodejs-repl
   :ensure t)
@@ -220,7 +242,6 @@
   (add-to-list 'auto-mode-alist '("\\.scss\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
   ;; Hack to stop web-mode messing with whitespace faces
-  (add-hook 'web-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
   (add-hook
    'web-mode-hook
    (lambda ()
@@ -239,21 +260,21 @@
 (use-package nodejs-repl :ensure t)
 
 ;; Shell
-(add-hook 'term-mode-hook (lambda() (setq show-trailing-whitespace nil)))
-(add-hook 'shell-mode-hook (lambda() (setq show-trailing-whitespace nil)))
-
-(defun clear-shell ()
-  (interactive)
-  (let ((comint-buffer-maximum-size 0))
-    (comint-truncate-buffer)))
-
-(add-hook
- 'shell-mode-hook
- (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
-(add-hook
- 'nodejs-repl-mode-hook
- (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
-
+(let ((silencio (lambda ()
+                  (company-mode -1)
+                  (setq show-trailing-whitespace nil))))
+  (defun clear-shell ()
+    (interactive)
+    (let ((comint-buffer-maximum-size 0))
+      (comint-truncate-buffer)))
+  (add-hook 'term-mode-hook silencio)
+  (add-hook 'shell-mode-hook silencio)
+  (add-hook 'helm-minibuffer-set-up-hook silencio)
+  (add-hook 'nodejs-repl-mode-hook silencio)
+  (add-hook 'magit-mode-hook (lambda () (company-mode -1)))
+  (add-hook 'text-mode-hook (lambda () (company-mode -1)))
+  (add-hook 'shell-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
+  (add-hook 'nodejs-repl-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell))))
 
 ;; EDiff
 (defvar my-ediff-last-windows nil)
@@ -278,13 +299,27 @@
   :ensure t
   :diminish company-mode
   :bind (("M-RET" . company-complete))
-  :config (global-company-mode))
+  :config
+  (global-company-mode)
+  (setq company-minimum-prefix-length 1)
+  (setq company-idle-delay 0)
+  )
 
 (use-package company-web :ensure t)
+
+(use-package tern
+  :ensure t
+  :diminish tern-mode
+  :config (add-hook 'js-mode-hook (lambda () (tern-mode t))))
+(use-package company-tern
+  :ensure
+  :config (add-to-list 'company-backends 'company-tern))
 
 (use-package magit
   :pin melpa-stable
   :ensure t
+  :diminish (magit-auto-revert-mode
+             auto-revert-mode)
   :config
   (setq magit-cherry-buffer-name-format "*magit-cherry*")
   (setq magit-commit-arguments (quote ("--no-verify")))
@@ -303,10 +338,20 @@
   (setq magit-stashes-buffer-name-format "*magit-stashes*")
   (setq magit-status-buffer-name-format "*magit-status: %a*")
   (setq magit-visit-ref-behavior (quote (checkout-branch)))
+  (setq magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1))
   )
 
 (use-package haskell-mode
   :ensure t)
+
+(use-package yasnippet
+  :ensure t)
+(use-package yasnippet-snippets
+  :ensure t)
+
+(use-package helm-c-yasnippet
+  :ensure t
+  :bind (("C-c y" . helm-yas-complete)))
 
 ;; Functions
 (defun isearch-with-region(&optional start end)
@@ -416,9 +461,8 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (diminish which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit jsx-mode json-mode helm-swoop helm-projectile helm-ls-git helm-company haskell-mode flycheck company-web)))
+    (helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
- '(require-final-newline t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps (quote ("*")))
  '(scroll-bar-mode nil)
@@ -448,3 +492,4 @@
  '(whitespace-newline ((t (:foreground "dim gray" :weight normal))))
  '(whitespace-space ((t (:foreground "#3f4554"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))
+(put 'downcase-region 'disabled nil)

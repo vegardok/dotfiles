@@ -353,6 +353,20 @@
   :ensure t
   :bind (("C-c y" . helm-yas-complete)))
 
+;; org-mode
+(use-package org-bullets
+  :ensure t
+ :init
+  (add-hook 'org-mode-hook #'org-bullets-mode)
+  )
+(setq
+ org-ellipsis " ⤵"
+ org-todo-keywords '((sequence "TODO" "WORKING" "WAITING" "DONE"))
+ org-log-done t
+ org-log-into-drawer nil
+ org-src-tab-acts-natively t
+ )
+
 ;; Functions
 (defun isearch-with-region(&optional start end)
   (interactive "r")
@@ -449,6 +463,7 @@
  '(grep-find-ignored-files
    (quote
     (".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json")))
+ '(helm-grep-file-path-style (quote basename))
  '(helm-reuse-last-window-split-state t)
  '(helm-split-window-inside-p t)
  '(imenu-auto-rescan t)
@@ -461,7 +476,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+    (org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps (quote ("*")))
@@ -489,6 +504,7 @@
  '(helm-ff-directory ((t (:foreground "deep sky blue"))))
  '(helm-ff-file ((t (:inherit nil :foreground "PeachPuff1"))))
  '(helm-selection ((t (:background "dark slate gray" :distant-foreground "black"))))
+ '(org-ellipsis ((t (:foreground "LightGoldenrod"))))
  '(whitespace-newline ((t (:foreground "dim gray" :weight normal))))
  '(whitespace-space ((t (:foreground "#3f4554"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))

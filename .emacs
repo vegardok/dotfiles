@@ -206,23 +206,25 @@
 ;; Web modes
 (use-package js2-mode
   :ensure t
+  :mode "\\.js\\'"
+  :mode "\\.jsx\\'"
   :config
-  (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
-  (add-to-list 'auto-mode-alist '("\\.jsx$" . js2-mode))
-  (setq js-indent-level 2)
-  (setq js-switch-indent-offset 2)
-  (setq js2-allow-keywords-as-property-names t)
-  (setq js2-bounce-indent-p nil)
-  (setq js2-cleanup-whitespace t)
-  (setq js2-global-externs
-        (quote
-         ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine")))
-  (setq js2-highlight-level 3)
-  (setq js2-idle-timer-delay 0.5)
-  (setq js2-ignored-warnings (quote ("msg.no.side.effects")))
-  (setq js2-mirror-mode nil)
-  (setq js2-strict-inconsistent-return-warning nil)
-  (setq js2-strict-missing-semi-warning nil))
+  (setq
+   js-indent-level 2
+   js-switch-indent-offset 2
+   js2-allow-keywords-as-property-names t
+   js2-bounce-indent-p nil
+   js2-cleanup-whitespace t
+   js2-global-extern
+   (quote
+    ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine"))
+   js2-highlight-level 3
+   js2-idle-timer-delay 0.5
+   js2-ignored-warnings (quote ("msg.no.side.effects"))
+   js2-mirror-mode nil
+   js2-strict-inconsistent-return-warning nil
+   js2-strict-missing-semi-warning nil))
+
 (use-package rjsx-mode :ensure t)
 
 (use-package nodejs-repl
@@ -345,6 +347,7 @@
   :ensure t)
 
 (use-package yasnippet
+  :diminish yas-minor-mode
   :ensure t)
 (use-package yasnippet-snippets
   :ensure t)

@@ -1,3 +1,4 @@
+
 (load-file "~/dotfiles/sensible-defaults.el")
 (sensible-defaults/use-all-settings)
 
@@ -120,7 +121,8 @@
 (use-package helm
   :ensure t
   :diminish helm-mode
-  :bind (("M-x" . helm-M-x)
+  :bind (("C-x M-x" . execute-extended-command)
+         ("M-x" . helm-M-x)
          ("C-x C-f" . helm-find-files)
          ("M-y" . helm-show-kill-ring)
          ("C-x b" . 'helm-mini))
@@ -163,10 +165,10 @@
 (setq isearch-lax-whitespace nil)
 
 ;; scroll one line at a time (less "jumpy" than defaults)
-(setq mouse-wheel-scroll-amount '(2 ((shift) . 2))) ;; one line at a time
-(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-(setq scroll-step 1 scroll-conservatively 10000) ;; keyboard scroll one line at a time
+;; (setq mouse-wheel-scroll-amount '(2 ((shift) . 2))) ;; one line at a time
+;; (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+;; (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+;; (setq scroll-step 1 scroll-conservatively 10000) ;; keyboard scroll one line at a time
 
 (use-package flycheck
   :ensure t
@@ -211,6 +213,7 @@
   :config
   (setq
    js-indent-level 2
+
    js-switch-indent-offset 2
    js2-allow-keywords-as-property-names t
    js2-bounce-indent-p nil
@@ -223,7 +226,11 @@
    js2-ignored-warnings (quote ("msg.no.side.effects"))
    js2-mirror-mode nil
    js2-strict-inconsistent-return-warning nil
-   js2-strict-missing-semi-warning nil))
+   js2-strict-missing-semi-warning nil
+   web-mode-markup-indent-offset 2
+   web-mode-css-indent-offset 2
+   ))
+
 
 (use-package rjsx-mode :ensure t)
 
@@ -265,18 +272,14 @@
 (let ((silencio (lambda ()
                   (company-mode -1)
                   (setq show-trailing-whitespace nil))))
-  (defun clear-shell ()
-    (interactive)
-    (let ((comint-buffer-maximum-size 0))
-      (comint-truncate-buffer)))
   (add-hook 'term-mode-hook silencio)
   (add-hook 'shell-mode-hook silencio)
+  (add-hook 'cider-repl-mode-hook silencio)
   (add-hook 'helm-minibuffer-set-up-hook silencio)
   (add-hook 'nodejs-repl-mode-hook silencio)
   (add-hook 'magit-mode-hook (lambda () (company-mode -1)))
   (add-hook 'text-mode-hook (lambda () (company-mode -1)))
-  (add-hook 'shell-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell)))
-  (add-hook 'nodejs-repl-mode-hook (lambda () (local-set-key (kbd "C-l") #'clear-shell))))
+)
 
 ;; EDiff
 (defvar my-ediff-last-windows nil)
@@ -364,11 +367,70 @@
   )
 (setq
  org-ellipsis " ⤵"
- org-todo-keywords '((sequence "TODO" "WORKING" "WAITING" "DONE"))
- org-log-done t
+ org-todo-keywords '((sequence "TODO" "WORKING" "DONE"))
+ org-log-done nil
  org-log-into-drawer nil
  org-src-tab-acts-natively t
+ org-default-notes-file "/gdrive:vegard-notes@okland.org:/notes/notes.org"
+ ;; initial-buffer-choice org-default-notes-file
  )
+
+
+(use-package auto-dim-other-buffers
+  :ensure t
+  :config
+  (setq auto-dim-other-buffers-mode t
+        auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+  (custom-set-faces
+   '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
+
+(use-package rainbow-delimiters :ensure t)
+
+(use-package clj-refactor
+  :ensure t
+  :config
+  (setq cljr-warn-on-eval nil))
+
+(use-package cljr-helm
+  :ensure t)
+
+(use-package smartparens
+  :ensure t
+  :config
+  (require 'smartparens-config))
+
+(defun my-clojure-mode-hook ()
+    (clj-refactor-mode 1)
+    (yas-minor-mode 1) ; for adding require/use/import statements
+    ;; This choice of keybinding leaves cider-macroexpand-1 unbound
+    ;; (cljr-add-keybindings-with-prefix "C-c C-m")
+    )
+
+(use-package clojure-mode
+  :ensure t
+  :mode (("\\.clj\\'" . clojure-mode)
+         ("\\.cls\\'" . clojure-mode)
+         ("\\.edn\\'" . clojure-mode))
+  :bind (("C-c r" . cljr-helm))
+  :init
+  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
+  (add-hook 'clojure-mode-hook #'my-clojure-mode-hook)
+  )
+
+(use-package cider
+  :ensure t
+  :defer t
+  :diminish subword-mode
+  ;; :bind (("C-c r" . cljr-helm))
+  :config
+  (setq
+   nrepl-log-messages nil
+   cider-repl-display-in-current-window nil
+   cider-repl-use-clojure-font-lock nil
+   cider-prompt-save-file-on-load 'always-save
+   cider-font-lock-dynamically '(macro core function var)
+   nrepl-hide-special-buffers t
+   cider-overlays-use-font-lock t))
 
 ;; Functions
 (defun isearch-with-region(&optional start end)
@@ -444,18 +506,21 @@
    [default default default italic underline success warning error])
  '(ansi-color-names-vector
    ["#212526" "#ff4b4b" "#b4fa70" "#fce94f" "#729fcf" "#ad7fa8" "#8cc4ff" "#eeeeec"])
+ '(auto-dim-other-buffers-mode t)
  '(background-mode dark)
  '(backup-by-copying t)
  '(backup-directory-alist (quote (("." . "~/.emacs.d/saves"))))
+ '(blink-cursor-mode nil)
  '(calendar-week-start-day 1)
  '(column-number-mode t)
  '(company-dabbrev-ignore-case (quote keep-prefix))
  '(create-lockfiles t)
  '(css-indent-offset 2)
  '(cursor-color "#cccccc")
+ '(custom-enabled-themes (quote (deeper-blue)))
  '(delete-old-versions t)
  '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
- '(fill-column 100)
+ '(fill-column 70)
  '(foreground-color "#cccccc")
  '(global-auto-complete-mode nil)
  '(global-font-lock-mode t)
@@ -472,6 +537,7 @@
  '(imenu-auto-rescan t)
  '(indent-tabs-mode nil)
  '(inhibit-startup-screen t)
+ '(js-indent-level 2)
  '(kept-new-versions 2)
  '(kept-old-versions 2)
  '(minibuffer-prompt-properties
@@ -479,7 +545,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+    (smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps (quote ("*")))
@@ -501,7 +567,8 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:family "Ubuntu Mono" :foundry "DAMA" :slant normal :weight normal :height 151 :width normal))))
+ '(default ((t (:inherit nil :stipple nil :background "gray15" :foreground "gray80" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 109 :width normal :foundry "DAMA" :family "Ubuntu Mono"))))
+ '(auto-dim-other-buffers-face ((t (:background "gray25"))))
  '(column-marker-1 ((t (:background "dark red"))))
  '(helm-buffer-process ((t (:foreground "sienna1"))))
  '(helm-ff-directory ((t (:foreground "deep sky blue"))))
@@ -512,3 +579,4 @@
  '(whitespace-space ((t (:foreground "#3f4554"))))
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))
 (put 'downcase-region 'disabled nil)
+(put 'upcase-region 'disabled nil)

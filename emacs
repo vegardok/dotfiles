@@ -1,4 +1,23 @@
 
+(defun ivarru-delete-spurious-whitespace ()
+  (interactive)
+  (let ((delete-trailing-lines t))
+    (delete-trailing-whitespace))
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
+      (message "%d" (point))
+      (beginning-of-line)
+      (if (looking-at (concat "^ *" (regexp-quote comment-start)))
+          (forward-line 1)
+        (replace-match "\\1"))))
+  ;; Return nil for the benefit of `write-file-functions'.
+  nil)
+
+(defun ivarru-delete-spurious-whitespace-on-save ()
+  (make-variable-buffer-local 'write-file-functions)
+  (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
+
 (load-file "~/dotfiles/sensible-defaults.el")
 (sensible-defaults/use-all-settings)
 
@@ -456,24 +475,6 @@
     (call-interactively 'isearch-backward-regexp)))
 
 
-(defun ivarru-delete-spurious-whitespace ()
-  (interactive)
-  (let ((delete-trailing-lines t))
-    (delete-trailing-whitespace))
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
-      (message "%d" (point))
-      (beginning-of-line)
-      (if (looking-at (concat "^ *" (regexp-quote comment-start)))
-          (forward-line 1)
-        (replace-match "\\1"))))
-  ;; Return nil for the benefit of `write-file-functions'.
-  nil)
-
-(defun ivarru-delete-spurious-whitespace-on-save ()
-  (make-variable-buffer-local 'write-file-functions)
-  (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
 
 (defun save-buffer-without-whitespace-cleanup ()
   (interactive)

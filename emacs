@@ -96,6 +96,8 @@
            '((default :height 3.0))))))
  ((string-equal system-type "darwin")
   (progn
+    (set-face-attribute 'default nil :family "Monaco")
+    (set-face-attribute 'default nil :height 130)
     (menu-bar-mode)
     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
     (defun my-minibuffer-setup ()
@@ -567,7 +569,6 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "gray15" :foreground "gray80" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 109 :width normal :foundry "DAMA" :family "Ubuntu Mono"))))
  '(auto-dim-other-buffers-face ((t (:background "gray25"))))
  '(column-marker-1 ((t (:background "dark red"))))
  '(helm-buffer-process ((t (:foreground "sienna1"))))

@@ -203,6 +203,9 @@
   :ensure t
   :diminish flycheck-mode
   :config
+  (setq
+   flycheck-check-syntax-automatically (quote (save mode-enabled)))
+
   (setq-default flycheck-disabled-checkers '(javascript-jshint))
   (setq flycheck-checkers '(javascript-eslint))
   ;; use local eslint from node_modules before global

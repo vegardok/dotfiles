@@ -1,4 +1,3 @@
-
 (load-file "~/dotfiles/sensible-defaults.el")
 (sensible-defaults/use-all-settings)
 

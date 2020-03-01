@@ -204,7 +204,35 @@
   :ensure t
   :config (exec-path-from-shell-initialize))
 
+(defun eslint-fix-file ()
+  (interactive)
+  (message "eslint --fixing the file" (buffer-file-name))
+  (let* ((root (locate-dominating-file
+                (or (buffer-file-name) default-directory)
+                "node_modules"))
+         (eslint (and root
+                      (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                        root))))
+    (message (concat eslint " --fix " (buffer-file-name)))
+    (shell-command (concat eslint " --fix " (buffer-file-name)))))
+
+(defun eslint-fix-file-and-revert ()
+  (interactive)
+  (eslint-fix-file)
+  (revert-buffer t t))
+
 ;; Web modes
+(use-package typescript-mode
+  :ensure t
+  :mode "\\.ts\\'"
+  :mode "\\.tsx\\'"
+  :config
+  (flycheck-add-mode 'javascript-eslint 'typescript-mode)
+  (setq typescript-indent-level 2)
+ :init
+  (add-hook 'typescript-mode-hook #'hs-minor-mode)
+  )
+
 (use-package js2-mode
   :ensure t
   :mode "\\.js\\'"
@@ -544,7 +572,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+    (typescript-mode smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps (quote ("*")))

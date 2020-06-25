@@ -1,3 +1,22 @@
+(defun ivarru-delete-spurious-whitespace ()
+  (interactive)
+  (let ((delete-trailing-lines t))
+    (delete-trailing-whitespace))
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
+      (message "%d" (point))
+      (beginning-of-line)
+      (if (looking-at (concat "^ *" (regexp-quote comment-start)))
+          (forward-line 1)
+        (replace-match "\\1"))))
+  ;; Return nil for the benefit of `write-file-functions'.
+  nil)
+
+(defun ivarru-delete-spurious-whitespace-on-save ()
+  (make-variable-buffer-local 'write-file-functions)
+  (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
+
 (load-file "~/dotfiles/sensible-defaults.el")
 (sensible-defaults/use-all-settings)
 
@@ -95,6 +114,8 @@
            '((default :height 3.0))))))
  ((string-equal system-type "darwin")
   (progn
+    (set-face-attribute 'default nil :family "Monaco")
+    (set-face-attribute 'default nil :height 130)
     (menu-bar-mode)
     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
     (defun my-minibuffer-setup ()
@@ -109,7 +130,10 @@
   (which-key-mode))
 
 (use-package projectile
-  :ensure t)
+  :ensure t
+  :config
+  (setq projectile-project-search-path '("~/repos"))
+  )
 
 (use-package helm-projectile
   :ensure t
@@ -151,6 +175,12 @@
    ("C-s" . helm-next-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
+
+(use-package treemacs
+  :ensure t)
+
+(use-package treemacs-projectile
+  :ensure t)
 
 (use-package multiple-cursors
   :ensure t
@@ -295,6 +325,22 @@
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
 
+(use-package typescript-mode
+  :ensure t
+  :mode "\\.tsx?\\'"
+  :config
+  (setq
+   typescript-indent-level 2)
+  )
+
+;; (use-package tide
+;;   :ensure t
+;;   :mode "\\.tsx?\\'"
+;;   :after (typescript-mode company flycheck)
+;;   :hook ((typescript-mode . tide-setup)
+;;          (typescript-mode . tide-hl-identifier-mode)
+;;          (before-save . tide-format-before-save)))
+
 ;; Shell
 (let ((silencio (lambda ()
                   (company-mode -1)
@@ -353,25 +399,26 @@
   :diminish (magit-auto-revert-mode
              auto-revert-mode)
   :config
-  (setq magit-cherry-buffer-name-format "*magit-cherry*")
-  (setq magit-commit-arguments (quote ("--no-verify")))
-  (setq magit-commit-show-diff nil)
-  (setq magit-diff-buffer-name-format "*magit-diff*")
-  (setq magit-diff-highlight-indentation (quote (("" . tabs))))
-  (setq magit-process-buffer-name-format "*magit-process*")
-  (setq magit-rebase-arguments (quote ("--autosquash")))
-  (setq magit-reflog-buffer-name-format "*magit-reflog*")
-  (setq magit-refs-buffer-name-format "*magit-branches*")
-  (setq magit-refs-sections-hook (quote (magit-insert-local-branches)))
-  (setq magit-refs-show-margin nil)
-  (setq magit-revert-buffers nil)
-  (setq magit-revision-buffer-name-format "*magit-commit*")
-  (setq magit-stash-buffer-name-format "*magit-stash*")
-  (setq magit-stashes-buffer-name-format "*magit-stashes*")
-  (setq magit-status-buffer-name-format "*magit-status: %a*")
-  (setq magit-visit-ref-behavior (quote (checkout-branch)))
-  (setq magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1))
-  )
+  (add-hook 'git-commit-mode-hook 'turn-on-flyspell)
+  (setq
+   magit-cherry-buffer-name-format "*magit-cherry*"
+   magit-commit-arguments (quote ("--no-verify"))
+   magit-commit-show-diff nil
+   magit-diff-buffer-name-format "*magit-diff*"
+   magit-diff-highlight-indentation (quote (("" . tabs)))
+   magit-process-buffer-name-format "*magit-process*"
+   magit-rebase-arguments (quote ("--autosquash"))
+   magit-reflog-buffer-name-format "*magit-reflog*"
+   magit-refs-buffer-name-format "*magit-branches*"
+   magit-refs-sections-hook (quote (magit-insert-local-branches))
+   magit-refs-show-margin nil
+   magit-revert-buffers nil
+   magit-revision-buffer-name-format "*magit-commit*"
+   magit-stash-buffer-name-format "*magit-stash*"
+   magit-stashes-buffer-name-format "*magit-stashes*"
+   magit-status-buffer-name-format "*magit-status: %a*"
+   magit-visit-ref-behavior (quote (checkout-branch))
+   magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)))
 
 (use-package haskell-mode
   :ensure t)
@@ -459,6 +506,9 @@
    nrepl-hide-special-buffers t
    cider-overlays-use-font-lock t))
 
+(use-package restclient
+  :ensure t)
+
 ;; Functions
 (defun isearch-with-region(&optional start end)
   (interactive "r")
@@ -481,24 +531,6 @@
     (call-interactively 'isearch-backward-regexp)))
 
 
-(defun ivarru-delete-spurious-whitespace ()
-  (interactive)
-  (let ((delete-trailing-lines t))
-    (delete-trailing-whitespace))
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
-      (message "%d" (point))
-      (beginning-of-line)
-      (if (looking-at (concat "^ *" (regexp-quote comment-start)))
-          (forward-line 1)
-        (replace-match "\\1"))))
-  ;; Return nil for the benefit of `write-file-functions'.
-  nil)
-
-(defun ivarru-delete-spurious-whitespace-on-save ()
-  (make-variable-buffer-local 'write-file-functions)
-  (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
 
 (defun save-buffer-without-whitespace-cleanup ()
   (interactive)
@@ -572,7 +604,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (typescript-mode smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+    (restclient treemacs-projectile treemacs yasnippet-snippets which-key web-mode use-package typescript-mode try smartparens scala-mode rjsx-mode rainbow-delimiters powerline org-bullets nodejs-repl markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git helm-c-yasnippet haskell-mode flycheck exec-path-from-shell diminish company-web company-tern cljr-helm auto-dim-other-buffers)))
  '(pop-up-windows t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps (quote ("*")))
@@ -594,7 +626,6 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "gray15" :foreground "gray80" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 109 :width normal :foundry "DAMA" :family "Ubuntu Mono"))))
  '(auto-dim-other-buffers-face ((t (:background "gray25"))))
  '(column-marker-1 ((t (:background "dark red"))))
  '(helm-buffer-process ((t (:foreground "sienna1"))))

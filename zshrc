@@ -9,3 +9,6 @@ if command -v pyenv 1>/dev/null 2>&1; then
 fi
 
 export CPPFLAGS="-std=c++11"
+
+PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
+PATH="$PATH:/usr/local/sbin"

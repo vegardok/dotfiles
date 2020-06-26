@@ -1,0 +1,5 @@
+[user]
+    name = Vegard Økland
+    email = vegard.okland@cognite.com
+[core]
+	excludesfile = ~/dotfiles/gitignore

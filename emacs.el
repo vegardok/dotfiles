@@ -70,6 +70,8 @@
 (use-package try
   :ensure t)
 
+
+
 (use-package diminish
   :ensure t
   :config
@@ -108,7 +110,7 @@
 (cond
  ((string-equal system-type "gnu/linux")
   (progn
-    (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+    (add-hook 'isearch-mode-hook 'my-minibuffer-setup)
     (defun my-minibuffer-setup ()
       (set (make-local-variable 'face-remapping-alist)
            '((default :height 3.0))))))
@@ -176,6 +178,9 @@
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
 
+(use-package wgrep
+  :ensure t)
+
 (use-package treemacs
   :ensure t)
 
@@ -185,19 +190,43 @@
 (use-package multiple-cursors
   :ensure t
   :config
-  (global-set-key (kbd "M-C-<down>") 'mc/mark-next-like-this)
-  (global-set-key (kbd "M-C-<up>") 'mc/mark-previous-like-this))
+  (global-set-key (kbd "M-C-n") 'mc/mark-next-like-this)
+  (global-set-key (kbd "M-C-p") 'mc/mark-previous-like-this))
 
 (setq mac-option-modifier nil
       mac-command-modifier 'meta
       x-select-enable-clipboard t)
 (setq isearch-lax-whitespace nil)
 
+(use-package groovy-mode
+  :ensure t
+  :mode "Jenkinsfile"
+  :config
+  (setq groovy-indent-offset 2))
+
 ;; scroll one line at a time (less "jumpy" than defaults)
 ;; (setq mouse-wheel-scroll-amount '(2 ((shift) . 2))) ;; one line at a time
 ;; (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
 ;; (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
 ;; (setq scroll-step 1 scroll-conservatively 10000) ;; keyboard scroll one line at a time
+
+
+(defun eslint-fix-file ()
+  (let* ((root (locate-dominating-file
+                  (or (buffer-file-name) default-directory)
+                  "node_modules"))
+           (eslint (and root
+                        (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                          root))))
+    (interactive)
+  (message "eslint --fixing the file" (buffer-file-name))
+  (shell-command (concat eslint " --fix " (buffer-file-name)))))
+
+
+(defun eslint-fix-file-and-revert ()
+  (interactive)
+  (eslint-fix-file)
+  (revert-buffer t t))
 
 (use-package flycheck
   :ensure t
@@ -300,23 +329,25 @@
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
 
+ (global-set-key [C-tab] 'hs-toggle-hiding)
+
 (use-package typescript-mode
   :ensure t
   :mode "\\.tsx?\\'"
+  :init
+  (add-hook 'typescript-mode-hook 'hs-minor-mode)
   :config
   (setq
    typescript-indent-level 2)
   )
 
-;; (use-package tide
-;;   :ensure t
-;;   :mode "\\.tsx?\\'"
-;;   :after (typescript-mode company flycheck)
-;;   :hook ((typescript-mode . tide-setup)
-;;          (typescript-mode . tide-hl-identifier-mode)
-;;          (before-save . tide-format-before-save)))
+(use-package tide
+  :ensure t
+  :after (typescript-mode company flycheck)
+  :hook ((typescript-mode . tide-setup)
+         (typescript-mode . tide-hl-identifier-mode)))
 
-;; Shell
+;; shell
 (let ((silencio (lambda ()
                   (company-mode -1)
                   (setq show-trailing-whitespace nil))))
@@ -363,10 +394,14 @@
 (use-package tern
   :ensure t
   :diminish tern-mode
-  :config (add-hook 'js-mode-hook (lambda () (tern-mode t))))
+  :config
+  ;; (add-hook 'js-mode-hook (lambda () (tern-mode t)))
+  )
 (use-package company-tern
   :ensure
-  :config (add-to-list 'company-backends 'company-tern))
+  :config
+  ;; (add-to-list 'company-backends 'company-tern)
+  )
 
 (use-package magit
   :pin melpa-stable
@@ -484,6 +519,12 @@
 (use-package restclient
   :ensure t)
 
+(use-package lorem-ipsum
+  :ensure t)
+
+(use-package yaml-mode
+  :ensure t)
+
 ;; Functions
 (defun isearch-with-region(&optional start end)
   (interactive "r")
@@ -579,7 +620,7 @@
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(package-selected-packages
    (quote
-    (treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+    (groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
  '(pop-up-windows t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps (quote ("*")))

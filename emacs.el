@@ -134,8 +134,7 @@
 (use-package projectile
   :ensure t
   :config
-  (setq projectile-project-search-path '("~/repos"))
-  )
+  (setq projectile-project-search-path '("~/repos")))
 
 (use-package helm-projectile
   :ensure t
@@ -147,7 +146,7 @@
   :ensure t
   :diminish helm-mode
   :bind (("C-x M-x" . execute-extended-command)
-         ("M-x" . helm-M-x)
+         ;; ("M-x" . helm-M-x)
          ("C-x C-f" . helm-find-files)
          ("M-y" . helm-show-kill-ring)
          ("C-x b" . 'helm-mini))
@@ -357,8 +356,6 @@
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
 
- (global-set-key [C-tab] 'hs-toggle-hiding)
-
 (use-package typescript-mode
   :ensure t
   :mode "\\.tsx?\\'"
@@ -425,14 +422,13 @@
   :config
   ;; (add-hook 'js-mode-hook (lambda () (tern-mode t)))
   )
-(use-package company-tern
-  :ensure
-  :config
-  ;; (add-to-list 'company-backends 'company-tern)
-  )
+;; (use-package company-tern
+;;   :ensure
+;;   :config
+;;   ;; (add-to-list 'company-backends 'company-tern)
+;;   )
 
 (use-package magit
-  :pin melpa-stable
   :ensure t
   :diminish (magit-auto-revert-mode
              auto-revert-mode)
@@ -457,6 +453,13 @@
    magit-status-buffer-name-format "*magit-status: %a*"
    magit-visit-ref-behavior (quote (checkout-branch))
    magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)))
+
+(use-package forge
+  :ensure t
+  :after magit
+  :config
+  (setq forge-topic-list-limit (quote (60 . 0))))
+
 
 (use-package haskell-mode
   :ensure t)
@@ -496,29 +499,41 @@
   (custom-set-faces
    '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
 
+(use-package flx
+  :ensure t)
+(use-package ivy
+  :ensure t
+  :config
+  (setq ivy-re-builders-alist
+      '((t . ivy--regex-fuzzy))) )
+(use-package counsel
+  :ensure t
+  :bind (("M-x" . counsel-M-x))
+  )
+
 (use-package rainbow-delimiters :ensure t)
 
-(use-package clj-refactor
-  :ensure t
-  :config
-  (setq cljr-warn-on-eval nil))
+;; (use-package clj-refactor
+;;   :ensure t
+;;   :config
+;;   (setq cljr-warn-on-eval nil))
 
-(use-package cljr-helm
-  :ensure t)
+;; (use-package cljr-helm
+;;   :ensure t)
 
-(use-package smartparens
-  :ensure t
-  :config
-  (require 'smartparens-config))
+;; (use-package smartparens
+;;   :ensure t
+;;   :config
+;;   (require 'smartparens-config))
 
-(defun my-clojure-mode-hook ()
-    (clj-refactor-mode 1)
-    (yas-minor-mode 1) ; for adding require/use/import statements
-    ;; This choice of keybinding leaves cider-macroexpand-1 unbound
-    ;; (cljr-add-keybindings-with-prefix "C-c C-m")
-    )
+;; (defun my-clojure-mode-hook ()
+;;     (clj-refactor-mode 1)
+;;     (yas-minor-mode 1) ; for adding require/use/import statements
+;;     ;; This choice of keybinding leaves cider-macroexpand-1 unbound
+;;     ;; (cljr-add-keybindings-with-prefix "C-c C-m")
+;;     )
 
-(use-package clojure-mode
+(use-package clojure-modex
   :ensure t
   :mode (("\\.clj\\'" . clojure-mode)
          ("\\.cls\\'" . clojure-mode)
@@ -612,29 +627,27 @@
  '(auto-dim-other-buffers-mode t)
  '(background-mode dark)
  '(backup-by-copying t)
- '(backup-directory-alist (quote (("." . "~/.emacs.d/saves"))))
+ '(backup-directory-alist '(("." . "~/.emacs.d/saves")))
  '(blink-cursor-mode nil)
  '(calendar-week-start-day 1)
  '(column-number-mode t)
- '(company-dabbrev-ignore-case (quote keep-prefix))
+ '(company-dabbrev-ignore-case 'keep-prefix)
  '(create-lockfiles t)
  '(css-indent-offset 2)
  '(cursor-color "#cccccc")
- '(custom-enabled-themes (quote (deeper-blue)))
+ '(custom-enabled-themes '(deeper-blue))
  '(delete-old-versions t)
- '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
- '(fill-column 70)
+ '(explicit-bash-args '("--noediting" "--login" "-i"))
+ '(fill-column 100)
  '(foreground-color "#cccccc")
  '(global-auto-complete-mode nil)
  '(global-font-lock-mode t)
  '(global-whitespace-mode t)
  '(grep-find-ignored-directories
-   (quote
-    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build")))
+   '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
  '(grep-find-ignored-files
-   (quote
-    (".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json")))
- '(helm-grep-file-path-style (quote basename))
+   '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
+ '(helm-grep-file-path-style 'basename)
  '(helm-reuse-last-window-split-state t)
  '(helm-split-window-inside-p t)
  '(imenu-auto-rescan t)
@@ -644,24 +657,22 @@
  '(kept-new-versions 2)
  '(kept-old-versions 2)
  '(minibuffer-prompt-properties
-   (quote
-    (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+   '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(package-selected-packages
-   (quote
-    (groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+   '(flx counsel ivy groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pop-up-windows t)
+ '(projectile-use-git-grep t)
  '(ruby-deep-arglist nil)
- '(same-window-regexps (quote ("*")))
+ '(same-window-regexps '("*"))
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
  '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
- '(version-control (quote never))
+ '(version-control 'never)
  '(whitespace-style
-   (quote
-    (face spaces tabs newline space-mark tab-mark newline-mark trailing indentation)))
+   '(face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))
  '(winner-mode t))
 
 

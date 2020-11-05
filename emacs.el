@@ -1,3 +1,5 @@
+
+
 (defun ivarru-delete-spurious-whitespace ()
   (interactive)
   (let ((delete-trailing-lines t))
@@ -21,23 +23,19 @@
 (sensible-defaults/use-all-settings)
 
 (setq init-dir "~/.emacs.d/")
-(package-initialize)
 
 (defvar gnu '("gnu" . "https://elpa.gnu.org/packages/"))
 (defvar melpa '("melpa" . "https://melpa.org/packages/"))
-(defvar melpa-stable '("melpa-stable" . "https://stable.melpa.org/packages/"))
 (defvar org-elpa '("org" . "http://orgmode.org/elpa/"))
 
 ;; Add marmalade to package repos
 (setq package-archives nil)
-(add-to-list 'package-archives melpa-stable t)
 (add-to-list 'package-archives melpa t)
 (add-to-list 'package-archives gnu t)
 (add-to-list 'package-archives org-elpa t)
 
 (unless (and (file-exists-p (concat init-dir "elpa/archives/gnu"))
-             (file-exists-p (concat init-dir "elpa/archives/melpa"))
-             (file-exists-p (concat init-dir "elpa/archives/melpa-stable")))
+             (file-exists-p (concat init-dir "elpa/archives/melpa")))
   (package-refresh-contents))
 
 (defun packages-install (&rest packages)
@@ -68,6 +66,9 @@
    (init--install-packages)))
 
 (use-package try
+  :ensure t)
+
+(use-package dockerfile-mode
   :ensure t)
 
 
@@ -134,8 +135,9 @@
 (use-package projectile
   :ensure t
   :config
-  (setq projectile-project-search-path '("~/repos"))
-  )
+  (setq
+   projectile-use-git-grep t
+   projectile-project-search-path '("~/repos")))
 
 (use-package helm-projectile
   :ensure t
@@ -147,23 +149,40 @@
   :ensure t
   :diminish helm-mode
   :bind (("C-x M-x" . execute-extended-command)
-         ("M-x" . helm-M-x)
+         ;; ("M-x" . helm-M-x)
          ("C-x C-f" . helm-find-files)
          ("M-y" . helm-show-kill-ring)
          ("C-x b" . 'helm-mini))
   :config
-  (setq helm-M-x-fuzzy-match t)
-  (setq helm-buffers-fuzzy-matching t)
-  (setq helm-recentf-fuzzy-match t)
-  (setq helm-mini-default-sources
-        '(helm-source-buffers-list
-          helm-source-ls-git
-          helm-source-recentf
-          helm-source-buffer-not-found
-          ;; helm-projectile-sources-list
-          ))
-  (setq helm-grep-file-path-style 'relative)
-  (helm-mode 1))
+  (setq
+   helm-candidate-number-limit 25
+   ;; helm-M-x-fuzzy-match nil
+  helm-buffers-fuzzy-matching t
+  helm-recentf-fuzzy-match t
+;;   helm-grep-file-path-style 'relative
+
+   helm-mini-default-sources '(helm-source-buffers-list
+                               helm-source-buffer-not-found
+
+                               ;; helm-source-ls-git
+                               helm-source-recentf
+                               ;; helm-projectile-sources-list
+                               ))
+  ;; (helm-mode 1)
+  )
+
+
+(use-package flx
+  :ensure t)
+
+(use-package ivy
+  :ensure t
+  :config
+  (setq ivy-re-builders-alist
+        '((t . ivy--regex-fuzzy))))
+(use-package counsel
+  :ensure t
+  :bind (("M-x" . counsel-M-x)))
 
 (use-package helm-ls-git :ensure t)
 
@@ -221,7 +240,6 @@
     (interactive)
   (message "eslint --fixing the file" (buffer-file-name))
   (shell-command (concat eslint " --fix " (buffer-file-name)))))
-
 
 (defun eslint-fix-file-and-revert ()
   (interactive)
@@ -336,10 +354,9 @@
   :mode "\\.tsx?\\'"
   :init
   (add-hook 'typescript-mode-hook 'hs-minor-mode)
+  (add-hook 'typescript-mode-hook 'company-mode)
   :config
-  (setq
-   typescript-indent-level 2)
-  )
+  (setq typescript-indent-level 2))
 
 (use-package tide
   :ensure t
@@ -349,16 +366,22 @@
 
 ;; shell
 (let ((silencio (lambda ()
-                  (company-mode -1)
+                  ;; (company-mode -1)
                   (setq show-trailing-whitespace nil))))
   (add-hook 'term-mode-hook silencio)
-  (add-hook 'shell-mode-hook silencio)
+  (add-hook 'eww-mode-hook silencio)
   (add-hook 'cider-repl-mode-hook silencio)
   (add-hook 'helm-minibuffer-set-up-hook silencio)
   (add-hook 'nodejs-repl-mode-hook silencio)
   (add-hook 'magit-mode-hook (lambda () (company-mode -1)))
   (add-hook 'text-mode-hook (lambda () (company-mode -1)))
-)
+  )
+;; (add-hook 'shell-mode-hook 'company-mode)
+(add-hook 'shell-mode-hook
+          (lambda ()
+            (helm-mode )
+            (company-mode -1)
+            (setq show-trailing-whitespace nil)))
 
 ;; EDiff
 (defvar my-ediff-last-windows nil)
@@ -376,18 +399,20 @@
   :ensure t
   :bind (("<backspace>" . backward-delete-char-untabify)))
 
-(use-package scala-mode
-  :ensure t)
+;; (use-package scala-mode
+;;   :ensure t)
 
 (use-package company
   :ensure t
   :diminish company-mode
   :bind (("M-RET" . company-complete))
   :config
-  (global-company-mode)
+  ;; (global-company-mode)
   (setq company-minimum-prefix-length 1)
   (setq company-idle-delay 0)
   )
+
+(add-hook 'emacs-lisp-mode-hook 'company-mode)
 
 (use-package company-web :ensure t)
 
@@ -397,14 +422,8 @@
   :config
   ;; (add-hook 'js-mode-hook (lambda () (tern-mode t)))
   )
-(use-package company-tern
-  :ensure
-  :config
-  ;; (add-to-list 'company-backends 'company-tern)
-  )
 
 (use-package magit
-  :pin melpa-stable
   :ensure t
   :diminish (magit-auto-revert-mode
              auto-revert-mode)
@@ -430,18 +449,23 @@
    magit-visit-ref-behavior (quote (checkout-branch))
    magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)))
 
-(use-package haskell-mode
-  :ensure t)
+(use-package forge
+  :ensure t
+  :after magit
+  :config (setq forge-topic-list-limit (quote (20 . 0))))
+
+;; (use-package haskell-mode
+;;   :ensure t)
 
 (use-package yasnippet
   :diminish yas-minor-mode
   :ensure t)
-(use-package yasnippet-snippets
-  :ensure t)
+;; (use-package yasnippet-snippets
+;;   :ensure t)
 
-(use-package helm-c-yasnippet
-  :ensure t
-  :bind (("C-c y" . helm-yas-complete)))
+;; (use-package helm-c-yasnippet
+;;   :ensure t
+;;   :bind (("C-c y" . helm-yas-complete)))
 
 ;; org-mode
 (use-package org-bullets
@@ -468,53 +492,53 @@
   (custom-set-faces
    '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
 
-(use-package rainbow-delimiters :ensure t)
+;; (use-package rainbow-delimiters :ensure t)
 
-(use-package clj-refactor
-  :ensure t
-  :config
-  (setq cljr-warn-on-eval nil))
+;; (use-package clj-refactor
+;;   :ensure t
+;;   :config
+;;   (setq cljr-warn-on-eval nil))
 
-(use-package cljr-helm
-  :ensure t)
+;; (use-package cljr-helm
+;;   :ensure t)
 
-(use-package smartparens
-  :ensure t
-  :config
-  (require 'smartparens-config))
+;; (use-package smartparens
+;;   :ensure t
+;;   :config
+;;   (require 'smartparens-config))
 
-(defun my-clojure-mode-hook ()
-    (clj-refactor-mode 1)
-    (yas-minor-mode 1) ; for adding require/use/import statements
-    ;; This choice of keybinding leaves cider-macroexpand-1 unbound
-    ;; (cljr-add-keybindings-with-prefix "C-c C-m")
-    )
+;; (defun my-clojure-mode-hook ()
+;;     (clj-refactor-mode 1)
+;;     (yas-minor-mode 1) ; for adding require/use/import statements
+;;     ;; This choice of keybinding leaves cider-macroexpand-1 unbound
+;;     ;; (cljr-add-keybindings-with-prefix "C-c C-m")
+;;     )
 
-(use-package clojure-mode
-  :ensure t
-  :mode (("\\.clj\\'" . clojure-mode)
-         ("\\.cls\\'" . clojure-mode)
-         ("\\.edn\\'" . clojure-mode))
-  :bind (("C-c r" . cljr-helm))
-  :init
-  (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
-  (add-hook 'clojure-mode-hook #'my-clojure-mode-hook)
-  )
+;; (use-package clojure-mode
+;;   :ensure t
+;;   :mode (("\\.clj\\'" . clojure-mode)
+;;          ("\\.cls\\'" . clojure-mode)
+;;          ("\\.edn\\'" . clojure-mode))
+;;   :bind (("C-c r" . cljr-helm))
+;;   :init
+;;   (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
+;;   (add-hook 'clojure-mode-hook #'my-clojure-mode-hook)
+;;   )
 
-(use-package cider
-  :ensure t
-  :defer t
-  :diminish subword-mode
-  ;; :bind (("C-c r" . cljr-helm))
-  :config
-  (setq
-   nrepl-log-messages nil
-   cider-repl-display-in-current-window nil
-   cider-repl-use-clojure-font-lock nil
-   cider-prompt-save-file-on-load 'always-save
-   cider-font-lock-dynamically '(macro core function var)
-   nrepl-hide-special-buffers t
-   cider-overlays-use-font-lock t))
+;; (use-package cider
+;;   :ensure t
+;;   :defer t
+;;   :diminish subword-mode
+;;   ;; :bind (("C-c r" . cljr-helm))
+;;   :config
+;;   (setq
+;;    nrepl-log-messages nil
+;;    cider-repl-display-in-current-window nil
+;;    cider-repl-use-clojure-font-lock nil
+;;    cider-prompt-save-file-on-load 'always-save
+;;    cider-font-lock-dynamically '(macro core function var)
+;;    nrepl-hide-special-buffers t
+;;    cider-overlays-use-font-lock t))
 
 (use-package restclient
   :ensure t)
@@ -523,6 +547,9 @@
   :ensure t)
 
 (use-package yaml-mode
+  :ensure t)
+
+(use-package terraform-mode
   :ensure t)
 
 ;; Functions
@@ -584,29 +611,27 @@
  '(auto-dim-other-buffers-mode t)
  '(background-mode dark)
  '(backup-by-copying t)
- '(backup-directory-alist (quote (("." . "~/.emacs.d/saves"))))
+ '(backup-directory-alist '(("." . "~/.emacs.d/saves")))
  '(blink-cursor-mode nil)
  '(calendar-week-start-day 1)
  '(column-number-mode t)
- '(company-dabbrev-ignore-case (quote keep-prefix))
+ '(company-dabbrev-ignore-case 'keep-prefix)
  '(create-lockfiles t)
  '(css-indent-offset 2)
  '(cursor-color "#cccccc")
- '(custom-enabled-themes (quote (deeper-blue)))
+ '(custom-enabled-themes '(deeper-blue))
  '(delete-old-versions t)
- '(explicit-bash-args (quote ("--noediting" "--login" "-i")))
- '(fill-column 70)
+ '(explicit-bash-args '("--noediting" "--login" "-i"))
+ '(fill-column 80)
  '(foreground-color "#cccccc")
  '(global-auto-complete-mode nil)
  '(global-font-lock-mode t)
  '(global-whitespace-mode t)
  '(grep-find-ignored-directories
-   (quote
-    ("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build")))
+   '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
  '(grep-find-ignored-files
-   (quote
-    (".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json")))
- '(helm-grep-file-path-style (quote basename))
+   '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
+ '(helm-grep-file-path-style 'basename)
  '(helm-reuse-last-window-split-state t)
  '(helm-split-window-inside-p t)
  '(imenu-auto-rescan t)
@@ -616,24 +641,23 @@
  '(kept-new-versions 2)
  '(kept-old-versions 2)
  '(minibuffer-prompt-properties
-   (quote
-    (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+   '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(package-selected-packages
-   (quote
-    (groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web)))
+   '(terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pop-up-windows t)
+ '(projectile-use-git-grep t)
  '(ruby-deep-arglist nil)
- '(same-window-regexps (quote ("*")))
+ '(same-window-regexps '("*"))
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
  '(show-trailing-whitespace t)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
- '(version-control (quote never))
+ '(version-control 'never)
+ '(w3m-home-page "https://news.ycombinator.com")
  '(whitespace-style
-   (quote
-    (face spaces tabs newline space-mark tab-mark newline-mark trailing indentation)))
+   '(face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))
  '(winner-mode t))
 
 

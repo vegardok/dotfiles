@@ -12,3 +12,10 @@ export CPPFLAGS="-std=c++11"
 
 PATH="$(brew --prefix)/opt/coreutils/libexec/gnubin:$PATH"
 PATH="$PATH:/usr/local/sbin"
+export PATH=/usr/local/bin:$PATH
+
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '/Users/vegardok/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/vegardok/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+if [ -f '/Users/vegardok/google-cloud-sdk/completion.zsh.inc' ]; then . '/Users/vegardok/google-cloud-sdk/completion.zsh.inc'; fi

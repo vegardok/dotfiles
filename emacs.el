@@ -118,7 +118,7 @@
  ((string-equal system-type "darwin")
   (progn
     (set-face-attribute 'default nil :family "Monaco")
-    (set-face-attribute 'default nil :height 130)
+    (set-face-attribute 'default nil :height 180)
     (menu-bar-mode)
     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
     (defun my-minibuffer-setup ()
@@ -284,7 +284,35 @@
   :ensure t
   :config (exec-path-from-shell-initialize))
 
+(defun eslint-fix-file ()
+  (interactive)
+  (message "eslint --fixing the file" (buffer-file-name))
+  (let* ((root (locate-dominating-file
+                (or (buffer-file-name) default-directory)
+                "node_modules"))
+         (eslint (and root
+                      (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                        root))))
+    (message (concat eslint " --fix " (buffer-file-name)))
+    (shell-command (concat eslint " --fix " (buffer-file-name)))))
+
+(defun eslint-fix-file-and-revert ()
+  (interactive)
+  (eslint-fix-file)
+  (revert-buffer t t))
+
 ;; Web modes
+(use-package typescript-mode
+  :ensure t
+  :mode "\\.ts\\'"
+  :mode "\\.tsx\\'"
+  :config
+  (flycheck-add-mode 'javascript-eslint 'typescript-mode)
+  (setq typescript-indent-level 2)
+ :init
+  (add-hook 'typescript-mode-hook #'hs-minor-mode)
+  )
+
 (use-package js2-mode
   :ensure t
   :mode "\\.js\\'"
@@ -346,8 +374,6 @@
 
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
-
- (global-set-key [C-tab] 'hs-toggle-hiding)
 
 (use-package typescript-mode
   :ensure t
@@ -422,6 +448,11 @@
   :config
   ;; (add-hook 'js-mode-hook (lambda () (tern-mode t)))
   )
+;; (use-package company-tern
+;;   :ensure
+;;   :config
+;;   ;; (add-to-list 'company-backends 'company-tern)
+;;   )
 
 (use-package magit
   :ensure t
@@ -452,10 +483,15 @@
 (use-package forge
   :ensure t
   :after magit
+
   :config (setq forge-topic-list-limit (quote (20 . 0))))
 
 ;; (use-package haskell-mode
-;;   :ensure t)
+;;   :ensure t
+
+
+(use-package haskell-mode
+  :ensure t)
 
 (use-package yasnippet
   :diminish yas-minor-mode
@@ -492,7 +528,19 @@
   (custom-set-faces
    '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
 
-;; (use-package rainbow-delimiters :ensure t)
+(use-package flx
+  :ensure t)
+(use-package ivy
+  :ensure t
+  :config
+  (setq ivy-re-builders-alist
+      '((t . ivy--regex-fuzzy))) )
+(use-package counsel
+  :ensure t
+  :bind (("M-x" . counsel-M-x))
+  )
+
+(use-package rainbow-delimiters :ensure t)
 
 ;; (use-package clj-refactor
 ;;   :ensure t
@@ -622,7 +670,7 @@
  '(custom-enabled-themes '(deeper-blue))
  '(delete-old-versions t)
  '(explicit-bash-args '("--noediting" "--login" "-i"))
- '(fill-column 80)
+ '(fill-column 100)
  '(foreground-color "#cccccc")
  '(global-auto-complete-mode nil)
  '(global-font-lock-mode t)

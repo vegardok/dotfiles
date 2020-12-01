@@ -21,7 +21,6 @@
 (sensible-defaults/use-all-settings)
 
 (setq init-dir "~/.emacs.d/")
-(package-initialize)
 
 (defvar gnu '("gnu" . "https://elpa.gnu.org/packages/"))
 (defvar melpa '("melpa" . "https://melpa.org/packages/"))
@@ -117,7 +116,7 @@
  ((string-equal system-type "darwin")
   (progn
     (set-face-attribute 'default nil :family "Monaco")
-    (set-face-attribute 'default nil :height 130)
+    (set-face-attribute 'default nil :height 180)
     (menu-bar-mode)
     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
     (defun my-minibuffer-setup ()
@@ -533,7 +532,7 @@
 ;;     ;; (cljr-add-keybindings-with-prefix "C-c C-m")
 ;;     )
 
-(use-package clojure-modex
+(use-package clojure-mode
   :ensure t
   :mode (("\\.clj\\'" . clojure-mode)
          ("\\.cls\\'" . clojure-mode)

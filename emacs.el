@@ -568,6 +568,20 @@
 (use-package yaml-mode
   :ensure t)
 
+(use-package rust-mode
+  :ensure t
+  :bind
+  ("C-c C-c" . rust-run))
+(use-package flycheck-rust
+  :ensure t)
+(use-package flymake-rust
+  :ensure t)
+(use-package cargo
+  :ensure t)
+
+(use-package eglot
+  :ensure t)
+
 ;; Functions
 (defun isearch-with-region(&optional start end)
   (interactive "r")

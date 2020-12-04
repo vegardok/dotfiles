@@ -601,19 +601,29 @@
 (use-package terraform-mode
   :ensure t)
 
+(use-package eglot
+  :ensure t
+  :demand)
+
 (use-package rust-mode
   :ensure t
+  :mode "\\.rs\\'"
+  :init
+  (add-hook 'rust-mode-hook #'eglot-ensure)
+  (add-hook 'rust-mode-hook 'company-mode)
   :bind
-  ("C-c C-c" . rust-run))
-(use-package flycheck-rust
-  :ensure t)
-(use-package flymake-rust
-  :ensure t)
+  ("C-c C-c" . rust-run)
+  :config
+  (setq rust-format-on-save nil))
+
 (use-package cargo
+  :ensure t
+  :hook ((rust-mode toml-mode) . cargo-minor-mode))
+
+(use-package toml-mode
+  :mode "\\.toml\\'"
   :ensure t)
 
-(use-package eglot
-  :ensure t)
 
 ;; Functions
 (defun isearch-with-region(&optional start end)

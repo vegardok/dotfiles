@@ -108,22 +108,22 @@
   :config (powerline-default-theme))
 
 ;;; M-x font
-(cond
- ((string-equal system-type "gnu/linux")
-  (progn
-    (add-hook 'isearch-mode-hook 'my-minibuffer-setup)
-    (defun my-minibuffer-setup ()
-      (set (make-local-variable 'face-remapping-alist)
-           '((default :height 3.0))))))
- ((string-equal system-type "darwin")
-  (progn
-    (set-face-attribute 'default nil :family "Monaco")
-    (set-face-attribute 'default nil :height 180)
-    (menu-bar-mode)
-    (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
-    (defun my-minibuffer-setup ()
-      (set (make-local-variable 'face-remapping-alist)
-           '((default :height 2.0 )))))))
+;; (cond
+;;  ((string-equal system-type "gnu/linux")
+;;   (progn
+;;     (add-hook 'isearch-mode-hook 'my-minibuffer-setup)
+;;     (defun my-minibuffer-setup ()
+;;       (set (make-local-variable 'face-remapping-alist)
+;;            '((default :height 3.0))))))
+;;  ((string-equal system-type "darwin")
+;;   (progn
+;;     (set-face-attribute 'default nil :family "Monaco")
+;;     (set-face-attribute 'default nil :height 130)
+;;     (menu-bar-mode)
+;;     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+;;     (defun my-minibuffer-setup ()
+;;       (set (make-local-variable 'face-remapping-alist)
+;;            '((default :height 2.0 )))))))
 (defalias 'list-buffers 'ibuffer)
 
 (use-package which-key
@@ -716,7 +716,7 @@
  '(minibuffer-prompt-properties
    '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(package-selected-packages
-   '(terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+   '(eglot cargo flymake-rust rust-mode flycheck-rust flx counsel ivy groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pop-up-windows t)
  '(projectile-use-git-grep t)
  '(ruby-deep-arglist nil)

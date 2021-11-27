@@ -109,22 +109,22 @@
   :config (powerline-default-theme))
 
 ;;; M-x font
-(cond
- ((string-equal system-type "gnu/linux")
-  (progn
-    (add-hook 'isearch-mode-hook 'my-minibuffer-setup)
-    (defun my-minibuffer-setup ()
-      (set (make-local-variable 'face-remapping-alist)
-           '((default :height 3.0))))))
- ((string-equal system-type "darwin")
-  (progn
-    (set-face-attribute 'default nil :family "Monaco")
-    (set-face-attribute 'default nil :height 130)
-    (menu-bar-mode)
-    (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
-    (defun my-minibuffer-setup ()
-      (set (make-local-variable 'face-remapping-alist)
-           '((default :height 2.0 )))))))
+;; (cond
+;;  ((string-equal system-type "gnu/linux")
+;;   (progn
+;;     (add-hook 'isearch-mode-hook 'my-minibuffer-setup)
+;;     (defun my-minibuffer-setup ()
+;;       (set (make-local-variable 'face-remapping-alist)
+;;            '((default :height 3.0))))))
+;;  ((string-equal system-type "darwin")
+;;   (progn
+;;     (set-face-attribute 'default nil :family "Monaco")
+;;     (set-face-attribute 'default nil :height 130)
+;;     (menu-bar-mode)
+;;     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+;;     (defun my-minibuffer-setup ()
+;;       (set (make-local-variable 'face-remapping-alist)
+;;            '((default :height 2.0 )))))))
 (defalias 'list-buffers 'ibuffer)
 
 (use-package which-key

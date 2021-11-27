@@ -1,4 +1,4 @@
-
+2
 
 (defun ivarru-delete-spurious-whitespace ()
   (interactive)
@@ -73,11 +73,11 @@
 
 
 
-(use-package diminish
-  :ensure t
-  :config
-  (diminish 'eldoc-mode)
-  (diminish 'auto-revert-mode))
+;; (use-package diminish
+;;   :ensure t
+;;   :config
+;;   (diminish 'eldoc-mode
+;;   (diminish 'auto-revert-mode))
 
 ;; Emacs UI
 
@@ -90,17 +90,18 @@
 (set-face-background 'hl-line "#2d3b42")
 (global-hl-line-mode)
 (blink-cursor-mode 0)
-(menu-bar-mode -1)
+(menu-bar-mode nil)
 (add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
-(add-hook 'prog-mode-hook (lambda () (yas-minor-mode t)))
+;; (add-hook 'prog-mode-hook (lambda () (yas-minor-mode t)))
 (add-hook 'prog-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
-(setq frame-title-format '((:eval (projectile-project-name))))
+(setq frame-title-format "Emacs")
 
 
 (use-package whitespace
   :diminish (global-whitespace-mode
              whitespace-mode
-             whitespace-newline-mode))
+             whitespace-newline-mode)
+  )
 
 ;; powerline?
 (use-package powerline
@@ -118,7 +119,7 @@
  ((string-equal system-type "darwin")
   (progn
     (set-face-attribute 'default nil :family "Monaco")
-    (set-face-attribute 'default nil :height 180)
+    (set-face-attribute 'default nil :height 130)
     (menu-bar-mode)
     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
     (defun my-minibuffer-setup ()
@@ -168,7 +169,7 @@
                                helm-source-recentf
                                ;; helm-projectile-sources-list
                                ))
-  ;; (helm-mode 1)
+  (helm-mode 1)
   )
 
 
@@ -200,11 +201,11 @@
 (use-package wgrep
   :ensure t)
 
-(use-package treemacs
-  :ensure t)
+;; (use-package treemacs
+;;   :ensure t)
 
-(use-package treemacs-projectile
-  :ensure t)
+;; (use-package treemacs-projectile
+;;   :ensure t)
 
 (use-package multiple-cursors
   :ensure t
@@ -248,7 +249,7 @@
 
 (use-package flycheck
   :ensure t
-  :diminish flycheck-mode
+  ;; :diminish flycheck-mode
   :config
   (setq
    flycheck-check-syntax-automatically (quote (save mode-enabled)))
@@ -264,6 +265,7 @@
            (eslint (and root
                         (expand-file-name "node_modules/eslint/bin/eslint.js"
                                           root))))
+      (message (concat "my/use-eslint-from-node-modules " eslint))
       (when (and eslint (file-executable-p eslint))
         (setq-local flycheck-javascript-eslint-executable eslint))))
   (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
@@ -301,17 +303,7 @@
   (eslint-fix-file)
   (revert-buffer t t))
 
-;; Web modes
-(use-package typescript-mode
-  :ensure t
-  :mode "\\.ts\\'"
-  :mode "\\.tsx\\'"
-  :config
-  (flycheck-add-mode 'javascript-eslint 'typescript-mode)
-  (setq typescript-indent-level 2)
- :init
-  (add-hook 'typescript-mode-hook #'hs-minor-mode)
-  )
+
 
 (use-package js2-mode
   :ensure t
@@ -378,17 +370,27 @@
 (use-package typescript-mode
   :ensure t
   :mode "\\.tsx?\\'"
+  :after (flycheck)
   :init
   (add-hook 'typescript-mode-hook 'hs-minor-mode)
   (add-hook 'typescript-mode-hook 'company-mode)
   :config
-  (setq typescript-indent-level 2))
+  (flycheck-add-mode 'javascript-eslint 'typescript-mode)
+;;  (flycheck-add-next-checker 'typescript-tide 'javascript-eslint 'append)
+  (setq typescript-indent-level 2)
+  ;; (add-hook
+  ;;  'typescript-mode
+  ;;  (lambda ()
+  ;;    (flycheck-add-next-checker 'typescript-tide 'javascript-eslint 'append)))
+  )
 
 (use-package tide
   :ensure t
   :after (typescript-mode company flycheck)
   :hook ((typescript-mode . tide-setup)
-         (typescript-mode . tide-hl-identifier-mode)))
+         (typescript-mode . tide-hl-identifier-mode))
+  :config
+  (flycheck-add-next-checker 'typescript-tide 'javascript-eslint 'append))
 
 ;; shell
 (let ((silencio (lambda ()
@@ -405,7 +407,7 @@
 ;; (add-hook 'shell-mode-hook 'company-mode)
 (add-hook 'shell-mode-hook
           (lambda ()
-            (helm-mode )
+            (helm-mode -1)
             (company-mode -1)
             (setq show-trailing-whitespace nil)))
 
@@ -473,11 +475,14 @@
    magit-refs-sections-hook (quote (magit-insert-local-branches))
    magit-refs-show-margin nil
    magit-revert-buffers nil
+;; magit-auto-revert-mode nil
    magit-revision-buffer-name-format "*magit-commit*"
    magit-stash-buffer-name-format "*magit-stash*"
    magit-stashes-buffer-name-format "*magit-stashes*"
    magit-status-buffer-name-format "*magit-status: %a*"
    magit-visit-ref-behavior (quote (checkout-branch))
+   magit-log-margin '(t "%Y-%m-%d" magit-log-margin-width t 18)
+   magit-log-margin-show-committer-date nil
    magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)))
 
 (use-package forge
@@ -493,9 +498,9 @@
 (use-package haskell-mode
   :ensure t)
 
-(use-package yasnippet
-  :diminish yas-minor-mode
-  :ensure t)
+;; (use-package yasnippet
+;;   ;; :diminish yas-minor-mode
+;;   :ensure t)
 ;; (use-package yasnippet-snippets
 ;;   :ensure t)
 
@@ -540,7 +545,7 @@
   :bind (("M-x" . counsel-M-x))
   )
 
-(use-package rainbow-delimiters :ensure t)
+;; (use-package rainbow-delimiters :ensure t)
 
 ;; (use-package clj-refactor
 ;;   :ensure t
@@ -598,6 +603,8 @@
   :ensure t)
 
 
+
+
 (use-package terraform-mode
   :ensure t)
 
@@ -622,6 +629,9 @@
 
 (use-package toml-mode
   :mode "\\.toml\\'"
+  :ensure t)
+
+(use-package uuidgen
   :ensure t)
 
 
@@ -687,7 +697,6 @@
  '(backup-directory-alist '(("." . "~/.emacs.d/saves")))
  '(blink-cursor-mode nil)
  '(calendar-week-start-day 1)
- '(column-number-mode t)
  '(company-dabbrev-ignore-case 'keep-prefix)
  '(create-lockfiles t)
  '(css-indent-offset 2)
@@ -704,7 +713,7 @@
    '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
  '(grep-find-ignored-files
    '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
- '(helm-grep-file-path-style 'basename)
+ '(helm-grep-file-path-style 'relative)
  '(helm-reuse-last-window-split-state t)
  '(helm-split-window-inside-p t)
  '(imenu-auto-rescan t)
@@ -713,10 +722,12 @@
  '(js-indent-level 2)
  '(kept-new-versions 2)
  '(kept-old-versions 2)
+ '(magit-clone-set-remote\.pushDefault t)
  '(minibuffer-prompt-properties
    '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
+ '(nginx-indent-level 2)
  '(package-selected-packages
-   '(terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+   '(uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pop-up-windows t)
  '(projectile-use-git-grep t)
  '(ruby-deep-arglist nil)

@@ -1,20 +1,3 @@
-2
-
-(defun ivarru-delete-spurious-whitespace ()
-  (interactive)
-  (let ((delete-trailing-lines t))
-    (delete-trailing-whitespace))
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
-      (message "%d" (point))
-      (beginning-of-line)
-      (if (looking-at (concat "^ *" (regexp-quote comment-start)))
-          (forward-line 1)
-        (replace-match "\\1"))))
-  ;; Return nil for the benefit of `write-file-functions'.
-  nil)
-
 (defun ivarru-delete-spurious-whitespace-on-save ()
   (make-variable-buffer-local 'write-file-functions)
   (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
@@ -65,23 +48,47 @@
    (package-refresh-contents)
    (init--install-packages)))
 
-(use-package try
-  :ensure t)
 
-(use-package dockerfile-mode
-  :ensure t)
+;; Functions
+(defun eslint-fix-file ()
+  (interactive)
+  (let* ((root (locate-dominating-file
+                (or (buffer-file-name) default-directory)
+                "node_modules"))
+         (eslint (and root
+                      (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                        root))))
+    (message "eslint --fixing the file" (buffer-file-name))
+    (shell-command (concat eslint " --fix " (buffer-file-name)))
+    (revert-buffer t t)))
+
+(defun ivarru-delete-spurious-whitespace ()
+  (interactive)
+  (let ((delete-trailing-lines t))
+    (delete-trailing-whitespace))
+  (save-excursion
+    (goto-char (point-min))
+    (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
+      (message "%d" (point))
+      (beginning-of-line)
+      (if (looking-at (concat "^ *" (regexp-quote comment-start)))
+          (forward-line 1)
+        (replace-match "\\1"))))
+  ;; Return nil for the benefit of `write-file-functions'.
+  nil)
 
 
+(defun save-buffer-without-whitespace-cleanup ()
+  (interactive)
+  (let ((b (current-buffer))) ; memorize the buffer
+    (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
+      (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+        (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
+          (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+            (save-buffer)))))))
 
-;; (use-package diminish
-;;   :ensure t
-;;   :config
-;;   (diminish 'eldoc-mode
-;;   (diminish 'auto-revert-mode))
-
-;; Emacs UI
-
-;;; Theme
+;;; Global Settings
+(defalias 'list-buffers 'ibuffer)
 (load-theme 'deeper-blue)
 (if (not window-system)
     (set-face-background 'default "unspecified-bg"))
@@ -90,42 +97,55 @@
 (set-face-background 'hl-line "#2d3b42")
 (global-hl-line-mode)
 (blink-cursor-mode 0)
-(menu-bar-mode nil)
+(menu-bar-mode -1)
 (add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
-;; (add-hook 'prog-mode-hook (lambda () (yas-minor-mode t)))
-(add-hook 'prog-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
+
+(add-hook 'prog-mode-hook (lambda ()
+                            (whitespace-mode t)
+                            (diminish 'whitespace-mode)
+                            ))
 (setq frame-title-format "Emacs")
 
+;; (add-hook 'prog-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
 
-(use-package whitespace
-  :diminish (global-whitespace-mode
-             whitespace-mode
-             whitespace-newline-mode)
-  )
+(setq mac-option-modifier nil
+      mac-command-modifier 'meta
+      x-select-enable-clipboard t)
+(setq isearch-lax-whitespace nil)
 
-;; powerline?
+
+;; scroll one line at a time (less "jumpy" than defaults)
+(setq mouse-wheel-scroll-amount '(2 ((shift) . 2))) ;; one line at a time
+(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
+(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
+(setq scroll-step 1 scroll-conservatively 10000) ;; keyboard scroll one line at a time
+;; (add-hook 'shell-mode-hook
+;;           (lambda ()
+;;             (helm-mode -1)
+;;             (company-mode -1)))
+
+
+;; Packages
+
+(use-package try
+  :ensure t)
+
+(use-package dockerfile-mode
+  :ensure t)
+
+;; Emacs UI
+(use-package diminish
+  :ensure t
+  :config
+  (diminish 'eldoc-mode
+            (diminish 'auto-revert-mode)))
+
+
+;; status bar thing
 (use-package powerline
   :ensure t
   :config (powerline-default-theme))
 
-;;; M-x font
-;; (cond
-;;  ((string-equal system-type "gnu/linux")
-;;   (progn
-;;     (add-hook 'isearch-mode-hook 'my-minibuffer-setup)
-;;     (defun my-minibuffer-setup ()
-;;       (set (make-local-variable 'face-remapping-alist)
-;;            '((default :height 3.0))))))
-;;  ((string-equal system-type "darwin")
-;;   (progn
-;;     (set-face-attribute 'default nil :family "Monaco")
-;;     (set-face-attribute 'default nil :height 130)
-;;     (menu-bar-mode)
-;;     (add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
-;;     (defun my-minibuffer-setup ()
-;;       (set (make-local-variable 'face-remapping-alist)
-;;            '((default :height 2.0 )))))))
-(defalias 'list-buffers 'ibuffer)
 
 (use-package which-key
   :ensure t
@@ -150,62 +170,27 @@
   :ensure t
   :diminish helm-mode
   :bind (("C-x M-x" . execute-extended-command)
-         ;; ("M-x" . helm-M-x)
+         ("M-x" . helm-M-x)
          ("C-x C-f" . helm-find-files)
          ("M-y" . helm-show-kill-ring)
          ("C-x b" . 'helm-mini))
   :config
   (setq
-   helm-candidate-number-limit 25
-   ;; helm-M-x-fuzzy-match nil
-  helm-buffers-fuzzy-matching t
-  helm-recentf-fuzzy-match t
-;;   helm-grep-file-path-style 'relative
+   helm-candidate-number-limit 50
+   helm-mode-fuzzy-match t
+   ))
 
-   helm-mini-default-sources '(helm-source-buffers-list
-                               helm-source-buffer-not-found
-
-                               ;; helm-source-ls-git
-                               helm-source-recentf
-                               ;; helm-projectile-sources-list
-                               ))
-  (helm-mode 1)
-  )
-
-
-(use-package flx
-  :ensure t)
-
-(use-package ivy
-  :ensure t
-  :config
-  (setq ivy-re-builders-alist
-        '((t . ivy--regex-fuzzy))))
-(use-package counsel
-  :ensure t
-  :bind (("M-x" . counsel-M-x)))
-
-(use-package helm-ls-git :ensure t)
-
+;; helm-projectile-sources-list
 (use-package helm-swoop
   :ensure t
   :bind (
-   ()
-   :map prog-mode-map (("C-s" . helm-swoop))
-   :map helm-swoop-map
-   ("C-r" . helm-previous-line)
-   ("C-s" . helm-next-line))
+     ()
+     :map prog-mode-map (("C-M-s" . helm-swoop))
+     :map helm-swoop-map
+     ("C-r" . helm-previous-line)
+     ("C-s" . helm-next-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
-
-(use-package wgrep
-  :ensure t)
-
-;; (use-package treemacs
-;;   :ensure t)
-
-;; (use-package treemacs-projectile
-;;   :ensure t)
 
 (use-package multiple-cursors
   :ensure t
@@ -213,39 +198,12 @@
   (global-set-key (kbd "M-C-n") 'mc/mark-next-like-this)
   (global-set-key (kbd "M-C-p") 'mc/mark-previous-like-this))
 
-(setq mac-option-modifier nil
-      mac-command-modifier 'meta
-      x-select-enable-clipboard t)
-(setq isearch-lax-whitespace nil)
-
 (use-package groovy-mode
   :ensure t
   :mode "Jenkinsfile"
   :config
   (setq groovy-indent-offset 2))
 
-;; scroll one line at a time (less "jumpy" than defaults)
-;; (setq mouse-wheel-scroll-amount '(2 ((shift) . 2))) ;; one line at a time
-;; (setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-;; (setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-;; (setq scroll-step 1 scroll-conservatively 10000) ;; keyboard scroll one line at a time
-
-
-(defun eslint-fix-file ()
-  (let* ((root (locate-dominating-file
-                  (or (buffer-file-name) default-directory)
-                  "node_modules"))
-           (eslint (and root
-                        (expand-file-name "node_modules/eslint/bin/eslint.js"
-                                          root))))
-    (interactive)
-  (message "eslint --fixing the file" (buffer-file-name))
-  (shell-command (concat eslint " --fix " (buffer-file-name)))))
-
-(defun eslint-fix-file-and-revert ()
-  (interactive)
-  (eslint-fix-file)
-  (revert-buffer t t))
 
 (use-package flycheck
   :ensure t
@@ -260,14 +218,14 @@
   ;; http://emacs.stackexchange.com/questions/21205/flycheck-with-file-relative-eslint-executable
   (defun my/use-eslint-from-node-modules ()
     (let* ((root (locate-dominating-file
-                  (or (buffer-file-name) default-directory)
-                  "node_modules"))
-           (eslint (and root
-                        (expand-file-name "node_modules/eslint/bin/eslint.js"
-                                          root))))
+          (or (buffer-file-name) default-directory)
+          "node_modules"))
+       (eslint (and root
+            (expand-file-name "node_modules/eslint/bin/eslint.js"
+                      root))))
       (message (concat "my/use-eslint-from-node-modules " eslint))
       (when (and eslint (file-executable-p eslint))
-        (setq-local flycheck-javascript-eslint-executable eslint))))
+    (setq-local flycheck-javascript-eslint-executable eslint))))
   (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
   (add-hook 'after-init-hook #'global-flycheck-mode))
 
@@ -286,130 +244,57 @@
   :ensure t
   :config (exec-path-from-shell-initialize))
 
-(defun eslint-fix-file ()
-  (interactive)
-  (message "eslint --fixing the file" (buffer-file-name))
-  (let* ((root (locate-dominating-file
-                (or (buffer-file-name) default-directory)
-                "node_modules"))
-         (eslint (and root
-                      (expand-file-name "node_modules/eslint/bin/eslint.js"
-                                        root))))
-    (message (concat eslint " --fix " (buffer-file-name)))
-    (shell-command (concat eslint " --fix " (buffer-file-name)))))
-
-(defun eslint-fix-file-and-revert ()
-  (interactive)
-  (eslint-fix-file)
-  (revert-buffer t t))
-
-
-
-(use-package js2-mode
-  :ensure t
-  :mode "\\.js\\'"
-  :mode "\\.jsx\\'"
-  :config
-  (setq
-   js-indent-level 2
-
-   js-switch-indent-offset 2
-   js2-allow-keywords-as-property-names t
-   js2-bounce-indent-p nil
-   js2-cleanup-whitespace t
-   js2-global-extern
-   (quote
-    ("require" "define" "requirejs" "window" "describe" "it" "expect" "jasmine"))
-   js2-highlight-level 3
-   js2-idle-timer-delay 0.5
-   js2-ignored-warnings (quote ("msg.no.side.effects"))
-   js2-mirror-mode nil
-   js2-strict-inconsistent-return-warning nil
-   js2-strict-missing-semi-warning nil
-   web-mode-markup-indent-offset 2
-   web-mode-css-indent-offset 2
-   ))
-
-
-(use-package rjsx-mode :ensure t)
 
 (use-package nodejs-repl
   :ensure t)
 
-(use-package web-mode
-  :ensure t
-  :config
-  (setq web-mode-code-indent-offset 2)
-  (setq web-mode-comment-style 1)
-  (setq web-mode-enable-auto-closing nil)
-  (setq web-mode-enable-auto-indentation nil)
-  (setq web-mode-enable-auto-opening nil)
-  (setq web-mode-enable-auto-pairing nil)
-  (setq web-mode-enable-auto-quoting nil)
-  (add-to-list 'auto-mode-alist '("\\.html$" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.scss\\'" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.css\\'" . web-mode))
-  ;; Hack to stop web-mode messing with whitespace faces
-  (add-hook
-   'web-mode-hook
-   (lambda ()
-     (interactive)
-     (setq-default web-mode-comment-formats (remove '("javascript" . "/*") web-mode-comment-formats))
-     (add-to-list 'web-mode-comment-formats '("javascript" . "//"))
-     (setq-default web-mode-comment-formats '(("javascript" . "//")))
-
-     (set (make-local-variable 'company-backends) '(company-web-html)))
-   (web-mode-set-content-type "jsx")
-   (message "now set to: %s" web-mode-content-type)))
-
-(use-package rjsx-mode :ensure t)
 
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
+
+(use-package lsp-mode
+  :ensure
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-headerline-breadcrumb-enable nil)
+  (setq
+   lsp-keymap-prefix "C-c l"
+   read-process-output-max (* 1024 10240)
+   gc-cons-threshold 100000000)
+  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+         (typescript-mode . lsp)
+         ;; if you want which-key integration
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
+;; optionally
+;; (use-package lsp-ui
+;;   :ensure
+;;   :commands lsp-ui-mode)
+;; if you are helm user
+;; (use-package helm-lsp
+;;   :ensure
+;;   :commands helm-lsp-workspace-symbol)
+
+
 
 (use-package typescript-mode
   :ensure t
   :mode "\\.tsx?\\'"
   :after (flycheck)
   :init
-  (add-hook 'typescript-mode-hook 'hs-minor-mode)
   (add-hook 'typescript-mode-hook 'company-mode)
   :config
   (flycheck-add-mode 'javascript-eslint 'typescript-mode)
-;;  (flycheck-add-next-checker 'typescript-tide 'javascript-eslint 'append)
-  (setq typescript-indent-level 2)
-  ;; (add-hook
-  ;;  'typescript-mode
-  ;;  (lambda ()
-  ;;    (flycheck-add-next-checker 'typescript-tide 'javascript-eslint 'append)))
-  )
+  (flycheck-add-next-checker 'lsp 'javascript-eslint 'append)
+  (setq typescript-indent-level 2))
 
-(use-package tide
+(use-package prettier-js
   :ensure t
-  :after (typescript-mode company flycheck)
-  :hook ((typescript-mode . tide-setup)
-         (typescript-mode . tide-hl-identifier-mode))
-  :config
-  (flycheck-add-next-checker 'typescript-tide 'javascript-eslint 'append))
-
-;; shell
-(let ((silencio (lambda ()
-                  ;; (company-mode -1)
-                  (setq show-trailing-whitespace nil))))
-  (add-hook 'term-mode-hook silencio)
-  (add-hook 'eww-mode-hook silencio)
-  (add-hook 'cider-repl-mode-hook silencio)
-  (add-hook 'helm-minibuffer-set-up-hook silencio)
-  (add-hook 'nodejs-repl-mode-hook silencio)
-  (add-hook 'magit-mode-hook (lambda () (company-mode -1)))
-  (add-hook 'text-mode-hook (lambda () (company-mode -1)))
+  :init
+  (add-hook 'typescript-mode 'prettier-js-mode)
   )
-;; (add-hook 'shell-mode-hook 'company-mode)
-(add-hook 'shell-mode-hook
-          (lambda ()
-            (helm-mode -1)
-            (company-mode -1)
-            (setq show-trailing-whitespace nil)))
+
 
 ;; EDiff
 (defvar my-ediff-last-windows nil)
@@ -421,45 +306,28 @@
 (add-hook 'ediff-before-setup-hook #'my-store-pre-ediff-winconfig)
 (add-hook 'ediff-quit-hook #'my-restore-pre-ediff-winconfig)
 
-
 ;; Markdown
 (use-package markdown-mode
   :ensure t
   :bind (("<backspace>" . backward-delete-char-untabify)))
-
-;; (use-package scala-mode
-;;   :ensure t)
 
 (use-package company
   :ensure t
   :diminish company-mode
   :bind (("M-RET" . company-complete))
   :config
-  ;; (global-company-mode)
-  (setq company-minimum-prefix-length 1)
-  (setq company-idle-delay 0)
-  )
+  (setq
+   company-minimum-prefix-length 1
+   company-idle-delay 0))
 
+;; progn hook?
 (add-hook 'emacs-lisp-mode-hook 'company-mode)
 
-(use-package company-web :ensure t)
-
-(use-package tern
-  :ensure t
-  :diminish tern-mode
-  :config
-  ;; (add-hook 'js-mode-hook (lambda () (tern-mode t)))
-  )
-;; (use-package company-tern
-;;   :ensure
-;;   :config
-;;   ;; (add-to-list 'company-backends 'company-tern)
-;;   )
 
 (use-package magit
   :ensure t
   :diminish (magit-auto-revert-mode
-             auto-revert-mode)
+         auto-revert-mode)
   :config
   (add-hook 'git-commit-mode-hook 'turn-on-flyspell)
   (setq
@@ -475,7 +343,7 @@
    magit-refs-sections-hook (quote (magit-insert-local-branches))
    magit-refs-show-margin nil
    magit-revert-buffers nil
-;; magit-auto-revert-mode nil
+   ;; magit-auto-revert-mode nil
    magit-revision-buffer-name-format "*magit-commit*"
    magit-stash-buffer-name-format "*magit-stash*"
    magit-stashes-buffer-name-format "*magit-stashes*"
@@ -485,113 +353,21 @@
    magit-log-margin-show-committer-date nil
    magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)))
 
-(use-package forge
-  :ensure t
-  :after magit
-
-  :config (setq forge-topic-list-limit (quote (20 . 0))))
-
-;; (use-package haskell-mode
-;;   :ensure t
-
-
-(use-package haskell-mode
-  :ensure t)
-
-;; (use-package yasnippet
-;;   ;; :diminish yas-minor-mode
-;;   :ensure t)
-;; (use-package yasnippet-snippets
-;;   :ensure t)
-
-;; (use-package helm-c-yasnippet
-;;   :ensure t
-;;   :bind (("C-c y" . helm-yas-complete)))
-
-;; org-mode
-(use-package org-bullets
-  :ensure t
- :init
-  (add-hook 'org-mode-hook #'org-bullets-mode)
-  )
-(setq
- org-ellipsis " ⤵"
- org-todo-keywords '((sequence "TODO" "WORKING" "DONE"))
- org-log-done nil
- org-log-into-drawer nil
- org-src-tab-acts-natively t
- org-default-notes-file "/gdrive:vegard-notes@okland.org:/notes/notes.org"
- ;; initial-buffer-choice org-default-notes-file
- )
-
 
 (use-package auto-dim-other-buffers
   :ensure t
   :config
   (setq auto-dim-other-buffers-mode t
-        auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+    auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
   (custom-set-faces
    '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
 
-(use-package flx
-  :ensure t)
-(use-package ivy
-  :ensure t
-  :config
-  (setq ivy-re-builders-alist
-      '((t . ivy--regex-fuzzy))) )
-(use-package counsel
-  :ensure t
-  :bind (("M-x" . counsel-M-x))
-  )
+;; helm-m-x is currently used
+;; (use-package counsel
+;; :ensure t
+;; :bind (("M-x" . counsel-M-x))
+;; )
 
-;; (use-package rainbow-delimiters :ensure t)
-
-;; (use-package clj-refactor
-;;   :ensure t
-;;   :config
-;;   (setq cljr-warn-on-eval nil))
-
-;; (use-package cljr-helm
-;;   :ensure t)
-
-;; (use-package smartparens
-;;   :ensure t
-;;   :config
-;;   (require 'smartparens-config))
-
-;; (defun my-clojure-mode-hook ()
-;;     (clj-refactor-mode 1)
-;;     (yas-minor-mode 1) ; for adding require/use/import statements
-;;     ;; This choice of keybinding leaves cider-macroexpand-1 unbound
-;;     ;; (cljr-add-keybindings-with-prefix "C-c C-m")
-;;     )
-
-;; (use-package clojure-mode
-;;   :ensure t
-;;   :mode (("\\.clj\\'" . clojure-mode)
-;;          ("\\.cls\\'" . clojure-mode)
-;;          ("\\.edn\\'" . clojure-mode))
-;;   :bind (("C-c r" . cljr-helm))
-;;   :init
-;;   (add-hook 'clojure-mode-hook #'rainbow-delimiters-mode)
-;;   (add-hook 'clojure-mode-hook #'my-clojure-mode-hook)
-;;   )
-
-;; (use-package cider
-;;   :ensure t
-;;   :defer t
-;;   :diminish subword-mode
-;;   ;; :bind (("C-c r" . cljr-helm))
-;;   :config
-;;   (setq
-;;    nrepl-log-messages nil
-;;    cider-repl-display-in-current-window nil
-;;    cider-repl-use-clojure-font-lock nil
-;;    cider-prompt-save-file-on-load 'always-save
-;;    cider-font-lock-dynamically '(macro core function var)
-;;    nrepl-hide-special-buffers t
-;;    cider-overlays-use-font-lock t))
 
 (use-package restclient
   :ensure t)
@@ -602,21 +378,14 @@
 (use-package yaml-mode
   :ensure t)
 
-
-
-
 (use-package terraform-mode
   :ensure t)
-
-(use-package eglot
-  :ensure t
-  :demand)
 
 (use-package rust-mode
   :ensure t
   :mode "\\.rs\\'"
   :init
-  (add-hook 'rust-mode-hook #'eglot-ensure)
+
   (add-hook 'rust-mode-hook 'company-mode)
   :bind
   ("C-c C-c" . rust-run)
@@ -635,51 +404,7 @@
   :ensure t)
 
 
-;; Functions
-(defun isearch-with-region(&optional start end)
-  (interactive "r")
-  (if (region-active-p)
-      (progn
-        (message "fancy search")
-        (let ((string (buffer-substring-no-properties start end)))
-          (deactivate-mark)
-          (isearch-resume string nil nil t string nil)))
-    (call-interactively 'isearch-forward-regexp)))
 
-(defun isearch-with-region-backwards(&optional start end)
-  (interactive "r")
-  (if (region-active-p)
-      (progn
-        (message "fancy search")
-        (let ((string (buffer-substring-no-properties start end)))
-          (deactivate-mark)
-          (isearch-resume string nil nil nil string nil)))
-    (call-interactively 'isearch-backward-regexp)))
-
-
-
-(defun save-buffer-without-whitespace-cleanup ()
-  (interactive)
-  (let ((b (current-buffer))) ; memorize the buffer
-    (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
-      (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-        (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
-          (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-            (save-buffer)))))))
-
-;;; Grep
-(defun my-compile-goto-error-same-window ()
-  (interactive)
-  (let ((display-buffer-overriding-action
-         '((display-buffer-reuse-window
-            display-buffer-same-window)
-           (inhibit-same-window . nil))))
-    (call-interactively #'compile-goto-error)))
-
-(defun my-compilation-mode-hook ()
-  (local-set-key (kbd "<return>") #'my-compile-goto-error-same-window))
-
-(add-hook 'compilation-mode-hook #'my-compilation-mode-hook)
 
 ;; Customize
 (custom-set-variables
@@ -698,7 +423,7 @@
  '(blink-cursor-mode nil)
  '(calendar-week-start-day 1)
  '(company-dabbrev-ignore-case 'keep-prefix)
- '(create-lockfiles t)
+ '(create-lockfiles nil)
  '(css-indent-offset 2)
  '(cursor-color "#cccccc")
  '(custom-enabled-themes '(deeper-blue))
@@ -708,14 +433,10 @@
  '(foreground-color "#cccccc")
  '(global-auto-complete-mode nil)
  '(global-font-lock-mode t)
- '(global-whitespace-mode t)
  '(grep-find-ignored-directories
    '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
  '(grep-find-ignored-files
    '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
- '(helm-grep-file-path-style 'relative)
- '(helm-reuse-last-window-split-state t)
- '(helm-split-window-inside-p t)
  '(imenu-auto-rescan t)
  '(indent-tabs-mode nil)
  '(inhibit-startup-screen t)
@@ -727,7 +448,7 @@
    '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(nginx-indent-level 2)
  '(package-selected-packages
-   '(uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+   '(prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pop-up-windows t)
  '(projectile-use-git-grep t)
  '(ruby-deep-arglist nil)

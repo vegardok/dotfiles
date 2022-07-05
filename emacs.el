@@ -1,6 +1,6 @@
-(defun ivarru-delete-spurious-whitespace-on-save ()
-  (make-variable-buffer-local 'write-file-functions)
-  (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
+;; (defun ivarru-delete-spurious-whitespace-on-save ()
+;;   (make-variable-buffer-local 'write-file-functions)
+;;   (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
 
 (load-file "~/dotfiles/sensible-defaults.el")
 (sensible-defaults/use-all-settings)
@@ -62,30 +62,30 @@
     (shell-command (concat eslint " --fix " (buffer-file-name)))
     (revert-buffer t t)))
 
-(defun ivarru-delete-spurious-whitespace ()
-  (interactive)
-  (let ((delete-trailing-lines t))
-    (delete-trailing-whitespace))
-  (save-excursion
-    (goto-char (point-min))
-    (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
-      (message "%d" (point))
-      (beginning-of-line)
-      (if (looking-at (concat "^ *" (regexp-quote comment-start)))
-          (forward-line 1)
-        (replace-match "\\1"))))
-  ;; Return nil for the benefit of `write-file-functions'.
-  nil)
+;; (defun ivarru-delete-spurious-whitespace ()
+;;   (interactive)
+;;   (let ((delete-trailing-lines t))
+;;     (delete-trailing-whitespace))
+;;   (save-excursion
+;;     (goto-char (point-min))
+;;     (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
+;;       (message "%d" (point))
+;;       (beginning-of-line)
+;;       (if (looking-at (concat "^ *" (regexp-quote comment-start)))
+;;           (forward-line 1)
+;;         (replace-match "\\1"))))
+;;   ;; Return nil for the benefit of `write-file-functions'.
+;;   nil)
 
 
-(defun save-buffer-without-whitespace-cleanup ()
-  (interactive)
-  (let ((b (current-buffer))) ; memorize the buffer
-    (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
-      (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-        (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
-          (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-            (save-buffer)))))))
+;; (defun save-buffer-without-whitespace-cleanup ()
+;;   (interactive)
+;;   (let ((b (current-buffer))) ; memorize the buffer
+;;     (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
+;;       (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+;;         (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
+;;           (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
+;;             (save-buffer)))))))
 
 ;;; Global Settings
 (defalias 'list-buffers 'ibuffer)
@@ -106,19 +106,27 @@
                             ))
 (setq frame-title-format "Emacs")
 
-;; (add-hook 'prog-mode-hook 'ivarru-delete-spurious-whitespace-on-save)
-
 (setq mac-option-modifier nil
       mac-command-modifier 'meta
       x-select-enable-clipboard t)
 (setq isearch-lax-whitespace nil)
 
 
+(setq python-shell-interpreter "python3")
+
+
 ;; scroll one line at a time (less "jumpy" than defaults)
-(setq mouse-wheel-scroll-amount '(2 ((shift) . 2))) ;; one line at a time
-(setq mouse-wheel-progressive-speed nil) ;; don't accelerate scrolling
-(setq mouse-wheel-follow-mouse 't) ;; scroll window under mouse
-(setq scroll-step 1 scroll-conservatively 10000) ;; keyboard scroll one line at a time
+(setq
+ mouse-wheel-scroll-amount '(2 ((shift) . 2)) ;; one line at a time
+ mouse-wheel-progressive-speed nil ;; don't accelerate scrolling
+ mouse-wheel-follow-mouse 't ) ;; scroll window under mouse
+(setq
+ scroll-step 1
+ scroll-conservatively 10000) ;; keyboard scroll one line at a time
+(set-face-attribute 'default nil :family "Ubuntu Mono")
+(set-face-attribute 'default nil :height 150)
+(setq-default line-spacing 0.2)
+
 ;; (add-hook 'shell-mode-hook
 ;;           (lambda ()
 ;;             (helm-mode -1)
@@ -178,7 +186,11 @@
   (setq
    helm-candidate-number-limit 50
    helm-mode-fuzzy-match t
-   ))
+   helm-completion-style 'helm-fuzzy
+   helm-recentf-fuzzy-match t
+   helm-grep-file-path-style 'relative
+   completion-styles '(flex))
+  (helm-mode 1))
 
 ;; helm-projectile-sources-list
 (use-package helm-swoop
@@ -191,6 +203,10 @@
      ("C-s" . helm-next-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
+
+(use-package wgrep
+  :ensure t
+  :config (use-package wgrep-helm :ensure t))
 
 (use-package multiple-cursors
   :ensure t
@@ -209,24 +225,7 @@
   :ensure t
   ;; :diminish flycheck-mode
   :config
-  (setq
-   flycheck-check-syntax-automatically (quote (save mode-enabled)))
-
-  (setq-default flycheck-disabled-checkers '(javascript-jshint))
-  (setq flycheck-checkers '(javascript-eslint))
-  ;; use local eslint from node_modules before global
-  ;; http://emacs.stackexchange.com/questions/21205/flycheck-with-file-relative-eslint-executable
-  (defun my/use-eslint-from-node-modules ()
-    (let* ((root (locate-dominating-file
-          (or (buffer-file-name) default-directory)
-          "node_modules"))
-       (eslint (and root
-            (expand-file-name "node_modules/eslint/bin/eslint.js"
-                      root))))
-      (message (concat "my/use-eslint-from-node-modules " eslint))
-      (when (and eslint (file-executable-p eslint))
-    (setq-local flycheck-javascript-eslint-executable eslint))))
-  (add-hook 'flycheck-mode-hook #'my/use-eslint-from-node-modules)
+  (setq flycheck-check-syntax-automatically (quote (save mode-enabled)))
   (add-hook 'after-init-hook #'global-flycheck-mode))
 
 (windmove-default-keybindings 'meta)
@@ -260,23 +259,26 @@
   (setq
    lsp-keymap-prefix "C-c l"
    read-process-output-max (* 1024 10240)
-   gc-cons-threshold 100000000)
+   gc-cons-threshold 100000000
+   lsp-keep-workspace-alive nil
+   )
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+         (python-mode . lsp)
          (typescript-mode . lsp)
          ;; if you want which-key integration
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
 
 ;; optionally
-;; (use-package lsp-ui
-;;   :ensure
-;;   :commands lsp-ui-mode)
+(use-package lsp-ui
+  :ensure t
+  :commands lsp-ui-mode)
 ;; if you are helm user
-;; (use-package helm-lsp
-;;   :ensure
-;;   :commands helm-lsp-workspace-symbol)
-
-
+(use-package helm-lsp
+  :ensure
+  :commands helm-lsp-workspace-symbol
+  :bind (("C-M-<return>" . helm-lsp-code-actions))
+  )
 
 (use-package typescript-mode
   :ensure t
@@ -285,8 +287,8 @@
   :init
   (add-hook 'typescript-mode-hook 'company-mode)
   :config
-  (flycheck-add-mode 'javascript-eslint 'typescript-mode)
-  (flycheck-add-next-checker 'lsp 'javascript-eslint 'append)
+  ;; (flycheck-add-mode 'javascript-eslint 'typescript-mode)
+  ;; (flycheck-add-next-checker 'lsp 'javascript-eslint 'append)
   (setq typescript-indent-level 2))
 
 (use-package prettier-js
@@ -294,6 +296,9 @@
   :init
   (add-hook 'typescript-mode 'prettier-js-mode)
   )
+
+(use-package jsonnet-mode
+  :ensure t)
 
 
 ;; EDiff
@@ -323,7 +328,6 @@
 ;; progn hook?
 (add-hook 'emacs-lisp-mode-hook 'company-mode)
 
-
 (use-package magit
   :ensure t
   :diminish (magit-auto-revert-mode
@@ -331,27 +335,21 @@
   :config
   (add-hook 'git-commit-mode-hook 'turn-on-flyspell)
   (setq
-   magit-cherry-buffer-name-format "*magit-cherry*"
-   magit-commit-arguments (quote ("--no-verify"))
+   magit-diff-refine-hunk 'all
+   ;; magit-commit-arguments (quote ("--no-verify"))
    magit-commit-show-diff nil
-   magit-diff-buffer-name-format "*magit-diff*"
    magit-diff-highlight-indentation (quote (("" . tabs)))
-   magit-process-buffer-name-format "*magit-process*"
-   magit-rebase-arguments (quote ("--autosquash"))
-   magit-reflog-buffer-name-format "*magit-reflog*"
-   magit-refs-buffer-name-format "*magit-branches*"
+   ;; magit-rebase-arguments (quote ("--autosquash"))
    magit-refs-sections-hook (quote (magit-insert-local-branches))
-   magit-refs-show-margin nil
-   magit-revert-buffers nil
+   ;; magit-refs-show-margin nil
+   ;; magit-revert-buffers nil
    ;; magit-auto-revert-mode nil
-   magit-revision-buffer-name-format "*magit-commit*"
-   magit-stash-buffer-name-format "*magit-stash*"
-   magit-stashes-buffer-name-format "*magit-stashes*"
-   magit-status-buffer-name-format "*magit-status: %a*"
-   magit-visit-ref-behavior (quote (checkout-branch))
+   ;; magit-visit-ref-behavior '(create-branch checkout-branch)
+  ;; magit-visit-ref-behavior (quote (checkout-branch))
    magit-log-margin '(t "%Y-%m-%d" magit-log-margin-width t 18)
    magit-log-margin-show-committer-date nil
-   magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)))
+   magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)
+   ))
 
 
 (use-package auto-dim-other-buffers
@@ -403,6 +401,9 @@
 (use-package uuidgen
   :ensure t)
 
+(use-package nginx-mode
+  :ensure t)
+
 
 
 
@@ -437,10 +438,13 @@
    '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
  '(grep-find-ignored-files
    '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
+ '(groovy-indent-offset 2)
+ '(helm-mode t)
  '(imenu-auto-rescan t)
  '(indent-tabs-mode nil)
  '(inhibit-startup-screen t)
  '(js-indent-level 2)
+ '(jsonnet-indent-level 4)
  '(kept-new-versions 2)
  '(kept-old-versions 2)
  '(magit-clone-set-remote\.pushDefault t)
@@ -448,14 +452,14 @@
    '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(nginx-indent-level 2)
  '(package-selected-packages
-   '(prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+   '(nginx-mode prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pop-up-windows t)
  '(projectile-use-git-grep t)
  '(ruby-deep-arglist nil)
  '(same-window-regexps '("*"))
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
- '(show-trailing-whitespace t)
+ '(show-trailing-whitespace nil)
  '(tab-width 4)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
@@ -483,3 +487,6 @@
  '(whitespace-trailing ((t (:background "#FF0000" :foreground "#FFFFFF" :inverse-video nil :underline nil :slant normal :weight bold)))))
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
+
+
+(diminish 'subword-mode)

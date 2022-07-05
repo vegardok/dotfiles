@@ -157,7 +157,7 @@ insert the text where point is, not where the mouse cursor is."
   "Use all of the sensible-defaults settings."
   (sensible-defaults/open-files-from-home-directory)
   (sensible-defaults/increase-gc-threshold)
-  (sensible-defaults/delete-trailing-whitespace)
+;;  (sensible-defaults/delete-trailing-whitespace)
   (sensible-defaults/treat-camelcase-as-separate-words)
   (sensible-defaults/automatically-follow-symlinks)
   (sensible-defaults/make-scripts-executable)

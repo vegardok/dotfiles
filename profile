@@ -11,8 +11,12 @@ export PATH=/usr/local/bin:$PATH
 
 export PATH=$PATH:~/google-cloud-sdk/bin/
 
+export PATH=$PATH:~/go/bin/
+
 alias python=/usr/local/bin/python3
 alias k=kubectl
+
+export GOPATH=/Users/vegardok/repos/adventofcode/2022
 
 
 # The next line updates PATH for the Google Cloud SDK.

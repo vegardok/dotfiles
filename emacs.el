@@ -4,6 +4,7 @@
 
 (load-file "~/dotfiles/sensible-defaults.el")
 (sensible-defaults/use-all-settings)
+(sensible-defaults/bind-commenting-and-uncommenting)
 
 (setq init-dir "~/.emacs.d/")
 
@@ -39,8 +40,7 @@
   (packages-install
    ;; Since use-package this is the only entry here
    ;; ALWAYS try to use use-package!
-   (cons 'use-package melpa)
-   ))
+   (cons 'use-package melpa)))
 
 (condition-case nil
     (init--install-packages)
@@ -112,7 +112,25 @@
 (setq isearch-lax-whitespace nil)
 
 
-(setq python-shell-interpreter "python3")
+;; (setq python-shell-interpreter "ipython")
+;; (use-package pyvenv
+;;   :ensure t
+;;   :config
+;;   (pyvenv-mode t)
+
+;;   ;; Set correct Python interpreter
+;;   (setq pyvenv-post-activate-hooks
+;;         (list (lambda ()
+;;                 (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/python3")))))
+;;   (setq pyvenv-post-deactivate-hooks
+;;         (list (lambda ()
+;;                 (setq python-shell-interpreter "python3")))))
+(use-package ein
+  :ensure t)
+
+
+(add-hook 'python-mode-hook 'company-mode)
+
 
 
 ;; scroll one line at a time (less "jumpy" than defaults)
@@ -126,11 +144,6 @@
 (set-face-attribute 'default nil :family "Ubuntu Mono")
 (set-face-attribute 'default nil :height 150)
 (setq-default line-spacing 0.2)
-
-;; (add-hook 'shell-mode-hook
-;;           (lambda ()
-;;             (helm-mode -1)
-;;             (company-mode -1)))
 
 
 ;; Packages
@@ -147,7 +160,6 @@
   :config
   (diminish 'eldoc-mode
             (diminish 'auto-revert-mode)))
-
 
 ;; status bar thing
 (use-package powerline
@@ -251,34 +263,56 @@
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
 
-(use-package lsp-mode
-  :ensure
-  :init
-  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-  (setq lsp-headerline-breadcrumb-enable nil)
-  (setq
-   lsp-keymap-prefix "C-c l"
-   read-process-output-max (* 1024 10240)
-   gc-cons-threshold 100000000
-   lsp-keep-workspace-alive nil
-   )
-  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-         (python-mode . lsp)
-         (typescript-mode . lsp)
-         ;; if you want which-key integration
-         (lsp-mode . lsp-enable-which-key-integration))
-  :commands lsp)
+(use-package eglot
+  :ensure t
+
+)
+
+(use-package go-mode
+  :ensure t
+  :config
+    (add-hook 'go-mode-hook 'company-mode)
+  )
+
+;; (use-package lsp-mode
+;;   :ensure
+;;   :init
+;;   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+;;   (setq lsp-headerline-breadcrumb-enable nil)
+;;   (setq
+;;    lsp-keymap-prefix "C-c l"
+;;    read-process-output-max (* 1024 10240)
+;;    gc-cons-threshold 100000000
+;;    lsp-keep-workspace-alive nil
+;;    )
+;;   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+;;          (python-mode . lsp)
+;;          (typescript-mode . lsp)
+;;          ;; if you want which-key integration
+;;          (lsp-mode . lsp-enable-which-key-integration))
+;;   :commands lsp)
 
 ;; optionally
-(use-package lsp-ui
-  :ensure t
-  :commands lsp-ui-mode)
+;; (use-package lsp-ui
+;;   :ensure t
+;;   :commands lsp-ui-mode)
 ;; if you are helm user
-(use-package helm-lsp
-  :ensure
-  :commands helm-lsp-workspace-symbol
-  :bind (("C-M-<return>" . helm-lsp-code-actions))
-  )
+;; (use-package helm-lsp
+;;   :ensure
+;;   :commands helm-lsp-workspace-symbol
+;;   :bind (("C-M-<return>" . helm-lsp-code-actions))
+;;   )
+
+(use-package sgml-mode
+  :hook
+  (html-mode . (lambda () (setq me/pretty-print-function #'sgml-pretty-print)))
+  (html-mode . sgml-electric-tag-pair-mode)
+  (html-mode . sgml-name-8bit-mode)
+  :custom
+  (sgml-basic-offset 2))
+
+(use-package prettier-js
+  :ensure t)
 
 (use-package typescript-mode
   :ensure t
@@ -286,16 +320,16 @@
   :after (flycheck)
   :init
   (add-hook 'typescript-mode-hook 'company-mode)
+  (add-hook 'typescript-mode-hook 'eglot-ensure)
+  (add-hook 'typescript-mode-hook 'prettier-js-mode)
+  (define-derived-mode typescript-tsx-mode typescript-mode "TSX")
+  (add-to-list 'auto-mode-alist `(,(rx ".tsx" eos) . typescript-tsx-mode))
   :config
+  (add-hook 'typescript-tsx-mode-hook #'sgml-electric-tag-pair-mode)
   ;; (flycheck-add-mode 'javascript-eslint 'typescript-mode)
   ;; (flycheck-add-next-checker 'lsp 'javascript-eslint 'append)
   (setq typescript-indent-level 2))
 
-(use-package prettier-js
-  :ensure t
-  :init
-  (add-hook 'typescript-mode 'prettier-js-mode)
-  )
 
 (use-package jsonnet-mode
   :ensure t)
@@ -452,7 +486,7 @@
    '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(nginx-indent-level 2)
  '(package-selected-packages
-   '(nginx-mode prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+   '(python-mode go-mode ein pyvenv lsp-pyright nginx-mode prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pop-up-windows t)
  '(projectile-use-git-grep t)
  '(ruby-deep-arglist nil)
@@ -465,6 +499,7 @@
  '(truncate-partial-width-windows nil)
  '(version-control 'never)
  '(w3m-home-page "https://news.ycombinator.com")
+ '(warning-suppress-types '((lsp-mode)))
  '(whitespace-style
    '(face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))
  '(winner-mode t))

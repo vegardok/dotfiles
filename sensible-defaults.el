@@ -157,7 +157,7 @@ insert the text where point is, not where the mouse cursor is."
   "Use all of the sensible-defaults settings."
   (sensible-defaults/open-files-from-home-directory)
   (sensible-defaults/increase-gc-threshold)
-;;  (sensible-defaults/delete-trailing-whitespace)
+  (sensible-defaults/delete-trailing-whitespace)
   (sensible-defaults/treat-camelcase-as-separate-words)
   (sensible-defaults/automatically-follow-symlinks)
   (sensible-defaults/make-scripts-executable)
@@ -174,7 +174,7 @@ insert the text where point is, not where the mouse cursor is."
   (sensible-defaults/refresh-buffers-when-files-change)
   (sensible-defaults/show-matching-parens)
   ;; (sensible-defaults/flash-screen-instead-of-ringing-bell)
-  (sensible-defaults/set-default-line-length-to 80)
+  (sensible-defaults/set-default-line-length-to 120)
   (sensible-defaults/open-clicked-files-in-same-frame-on-mac)
   (sensible-defaults/yank-to-point-on-mouse-click))
 
@@ -183,7 +183,7 @@ insert the text where point is, not where the mouse cursor is."
 (defun sensible-defaults/bind-commenting-and-uncommenting ()
   "Comment or uncomment a region by hitting M-;."
   (global-set-key (kbd "M-;")
-                  'sensible-defaults/comment-or-uncomment-region-or-line))
+                  'sensible-defaults/comment-or-uncomment-region-or-line)) ;
 
 (defun sensible-defaults/bind-home-and-end-keys ()
   "Make <home> and <end> move point to the beginning and end of

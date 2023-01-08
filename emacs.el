@@ -306,8 +306,8 @@
 (use-package sgml-mode
   :hook
   (html-mode . (lambda () (setq me/pretty-print-function #'sgml-pretty-print)))
-  (html-mode . sgml-electric-tag-pair-mode)
-  (html-mode . sgml-name-8bit-mode)
+  ;; (html-mode . sgml-electric-tag-pair-mode)
+  ;; (html-mode . sgml-name-8bit-mode)
   :custom
   (sgml-basic-offset 2))
 
@@ -325,7 +325,7 @@
   (define-derived-mode typescript-tsx-mode typescript-mode "TSX")
   (add-to-list 'auto-mode-alist `(,(rx ".tsx" eos) . typescript-tsx-mode))
   :config
-  (add-hook 'typescript-tsx-mode-hook #'sgml-electric-tag-pair-mode)
+  ;; (add-hook 'typescript-tsx-mode-hook #'sgml-electric-tag-pair-mode)
   ;; (flycheck-add-mode 'javascript-eslint 'typescript-mode)
   ;; (flycheck-add-next-checker 'lsp 'javascript-eslint 'append)
   (setq typescript-indent-level 2))

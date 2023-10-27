@@ -25,3 +25,5 @@ if [ -f '/Users/vegardok/Downloads/google-cloud-sdk/path.bash.inc' ]; then . '/U
 # The next line enables shell command completion for gcloud.
 if [ -f '/Users/vegardok/Downloads/google-cloud-sdk/completion.bash.inc' ]; then . '/Users/vegardok/Downloads/google-cloud-sdk/completion.bash.inc'; fi
 . "$HOME/.cargo/env"
+
+export PATH="/Users/vegardok/Library/Application Support/edgedb/bin:$PATH"

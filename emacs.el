@@ -1,8 +1,4 @@
-;; (defun ivarru-delete-spurious-whitespace-on-save ()
-;;   (make-variable-buffer-local 'write-file-functions)
-;;   (add-to-list 'write-file-functions 'ivarru-delete-spurious-whitespace))
-
-(load-file "~/dotfiles/sensible-defaults.el")
+(load-file "~/repos/dotfiles/sensible-defaults.el")
 (sensible-defaults/use-all-settings)
 (sensible-defaults/bind-commenting-and-uncommenting)
 
@@ -42,6 +38,8 @@
    ;; ALWAYS try to use use-package!
    (cons 'use-package melpa)))
 
+
+;; Install everything
 (condition-case nil
     (init--install-packages)
   (error
@@ -49,43 +47,20 @@
    (init--install-packages)))
 
 
+
 ;; Functions
 (defun eslint-fix-file ()
   (interactive)
   (let* ((root (locate-dominating-file
-                (or (buffer-file-name) default-directory)
-                "node_modules"))
-         (eslint (and root
-                      (expand-file-name "node_modules/eslint/bin/eslint.js"
-                                        root))))
+		(or (buffer-file-name) default-directory)
+		"node_modules"))
+	 (eslint (and root
+		      (expand-file-name "node_modules/eslint/bin/eslint.js"
+					root))))
     (message "eslint --fixing the file" (buffer-file-name))
     (shell-command (concat eslint " --fix " (buffer-file-name)))
     (revert-buffer t t)))
 
-;; (defun ivarru-delete-spurious-whitespace ()
-;;   (interactive)
-;;   (let ((delete-trailing-lines t))
-;;     (delete-trailing-whitespace))
-;;   (save-excursion
-;;     (goto-char (point-min))
-;;     (while (re-search-forward "\\([^ \t\n] \\) +" nil t)
-;;       (message "%d" (point))
-;;       (beginning-of-line)
-;;       (if (looking-at (concat "^ *" (regexp-quote comment-start)))
-;;           (forward-line 1)
-;;         (replace-match "\\1"))))
-;;   ;; Return nil for the benefit of `write-file-functions'.
-;;   nil)
-
-
-;; (defun save-buffer-without-whitespace-cleanup ()
-;;   (interactive)
-;;   (let ((b (current-buffer))) ; memorize the buffer
-;;     (with-temp-buffer ; new temp buffer to bind the global value of before-save-hook
-;;       (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-;;         (with-current-buffer b ; go back to the current buffer, write-file-functions is now buffer-local
-;;           (let ((write-file-functions (remove 'ivarru-delete-spurious-whitespace write-file-functions)))
-;;             (save-buffer)))))))
 
 ;;; Global Settings
 (defalias 'list-buffers 'ibuffer)
@@ -98,12 +73,7 @@
 (global-hl-line-mode)
 (blink-cursor-mode 0)
 (menu-bar-mode -1)
-(add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
 
-(add-hook 'prog-mode-hook (lambda ()
-                            (whitespace-mode t)
-                            (diminish 'whitespace-mode)
-                            ))
 (setq frame-title-format "Emacs")
 
 (setq mac-option-modifier nil
@@ -112,24 +82,31 @@
 (setq isearch-lax-whitespace nil)
 
 
-;; (setq python-shell-interpreter "ipython")
-;; (use-package pyvenv
-;;   :ensure t
-;;   :config
-;;   (pyvenv-mode t)
+(use-package company
+  :ensure t
+  ;; :diminish company-mode
+  :bind (("M-RET" . company-complete))
+  :config
+  (setq
+   company-minimum-prefix-length 1
+   company-idle-delay 0
+	 company-global-modes '(not shell-mode)))
+(add-hook 'after-init-hook 'global-company-mode)
 
-;;   ;; Set correct Python interpreter
-;;   (setq pyvenv-post-activate-hooks
-;;         (list (lambda ()
-;;                 (setq python-shell-interpreter (concat pyvenv-virtual-env "bin/python3")))))
-;;   (setq pyvenv-post-deactivate-hooks
-;;         (list (lambda ()
-;;                 (setq python-shell-interpreter "python3")))))
-(use-package ein
+(use-package eglot
+	:ensure t
+	:config
+	(setq
+	 eglot-confirm-server-initiated-edits nil
+	 eglot-events-buffer-size 0)
+	:bind (("C-M-<return>" . eglot-code-actions)))
+
+(use-package diminish
   :ensure t)
 
 
-(add-hook 'python-mode-hook 'company-mode)
+
+;; (add-hook 'python-mode-hook 'company-mode)
 
 
 
@@ -154,12 +131,7 @@
 (use-package dockerfile-mode
   :ensure t)
 
-;; Emacs UI
-(use-package diminish
-  :ensure t
-  :config
-  (diminish 'eldoc-mode
-            (diminish 'auto-revert-mode)))
+
 
 ;; status bar thing
 (use-package powerline
@@ -173,12 +145,17 @@
   :config
   (which-key-mode))
 
+(use-package graphql-mode
+  :ensure t)
+
 (use-package projectile
   :ensure t
+	 :init
+  (projectile-mode +1)
   :config
   (setq
    projectile-use-git-grep t
-   projectile-project-search-path '("~/repos")))
+   projectile-project-search-path '("~/repos" ("~/repos/omny-frontend" . 2))))
 
 (use-package helm-projectile
   :ensure t
@@ -188,12 +165,12 @@
 
 (use-package helm
   :ensure t
-  :diminish helm-mode
+  ;; :diminish helm-mode
   :bind (("C-x M-x" . execute-extended-command)
-         ("M-x" . helm-M-x)
-         ("C-x C-f" . helm-find-files)
-         ("M-y" . helm-show-kill-ring)
-         ("C-x b" . 'helm-mini))
+	 ("M-x" . helm-M-x)
+	 ("C-x C-f" . helm-find-files)
+	 ("M-y" . helm-show-kill-ring)
+	 ("C-x b" . 'helm-mini))
   :config
   (setq
    helm-candidate-number-limit 50
@@ -208,11 +185,11 @@
 (use-package helm-swoop
   :ensure t
   :bind (
-     ()
-     :map prog-mode-map (("C-M-s" . helm-swoop))
-     :map helm-swoop-map
-     ("C-r" . helm-previous-line)
-     ("C-s" . helm-next-line))
+	 ()
+	 :map prog-mode-map (("C-M-s" . helm-swoop))
+	 :map helm-swoop-map
+	 ("C-r" . helm-previous-line)
+	 ("C-s" . helm-next-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
 
@@ -238,7 +215,8 @@
   ;; :diminish flycheck-mode
   :config
   (setq flycheck-check-syntax-automatically (quote (save mode-enabled)))
-  (add-hook 'after-init-hook #'global-flycheck-mode))
+  ;; (add-hook 'after-init-hook #'global-flycheck-mode)
+	)
 
 (windmove-default-keybindings 'meta)
 
@@ -263,45 +241,79 @@
 (use-package json-mode :ensure t)
 (use-package nodejs-repl :ensure t)
 
-(use-package eglot
-  :ensure t
 
-)
+(use-package treesit
+  :preface
+  (defun mp-setup-install-grammars ()
+    "Install Tree-sitter grammars if they are absent."
+    (interactive)
+    (dolist (grammar
+             '(
+							 (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
+							 (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+							 (go "https://github.com/tree-sitter/tree-sitter-go")
+							 (html "https://github.com/tree-sitter/tree-sitter-html")
+							 (json "https://github.com/tree-sitter/tree-sitter-json")
+							 (make "https://github.com/alemuller/tree-sitter-make")
+							 (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+							 (toml "https://github.com/tree-sitter/tree-sitter-toml")
+							 (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+               (css "https://github.com/tree-sitter/tree-sitter-css")
+               (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript" "master" "src"))
+               (python "https://github.com/tree-sitter/tree-sitter-python")
+							 (svelte "https://github.com/Himujjal/tree-sitter-svelte" "master" "src")
+               ;; (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
 
-(use-package go-mode
-  :ensure t
+               (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
+      (add-to-list 'treesit-language-source-alist grammar)
+      ;; Only install `grammar' if we don't already have it
+      ;; installed. However, if you want to *update* a grammar then
+      ;; this obviously prevents that from happening.
+      (unless (treesit-language-available-p (car grammar))
+        (treesit-install-language-grammar (car grammar)))))
+
+  ;; Optional, but recommended. Tree-sitter enabled major modes are
+  ;; distinct from their ordinary counterparts.
+  ;;
+  ;; You can remap major modes with `major-mode-remap-alist'. Note
+  ;; that this does *not* extend to hooks! Make sure you migrate them
+  ;; also
+  (dolist (mapping '((python-mode . python-ts-mode)
+                     (css-mode . css-ts-mode)
+                     ;; (typescript-mode . tsx-ts-mode)
+                     (json-mode . json-ts-mode)
+                     (js-mode . js-ts-mode)
+                     (css-mode . css-ts-mode)
+                     (yaml-mode . yaml-ts-mode)))
+    (add-to-list 'major-mode-remap-alist mapping))
+
   :config
-    (add-hook 'go-mode-hook 'company-mode)
-  )
+  (mp-setup-install-grammars)
+  ;; Do not forget to customize Combobulate to your liking:
+  ;;
+  ;;  M-x customize-group RET combobulate RET
+  ;;
+  ;; (use-package combobulate
+  ;;   :preface
+  ;;   ;; You can customize Combobulate's key prefix here.
+  ;;   ;; Note that you may have to restart Emacs for this to take effect!
+  ;;   (setq combobulate-key-prefix "C-c o")
 
-;; (use-package lsp-mode
-;;   :ensure
-;;   :init
-;;   ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
-;;   (setq lsp-headerline-breadcrumb-enable nil)
-;;   (setq
-;;    lsp-keymap-prefix "C-c l"
-;;    read-process-output-max (* 1024 10240)
-;;    gc-cons-threshold 100000000
-;;    lsp-keep-workspace-alive nil
-;;    )
-;;   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
-;;          (python-mode . lsp)
-;;          (typescript-mode . lsp)
-;;          ;; if you want which-key integration
-;;          (lsp-mode . lsp-enable-which-key-integration))
-;;   :commands lsp)
-
-;; optionally
-;; (use-package lsp-ui
-;;   :ensure t
-;;   :commands lsp-ui-mode)
-;; if you are helm user
-;; (use-package helm-lsp
-;;   :ensure
-;;   :commands helm-lsp-workspace-symbol
-;;   :bind (("C-M-<return>" . helm-lsp-code-actions))
-;;   )
+    ;; Optional, but recommended.
+    ;;
+    ;; You can manually enable Combobulate with `M-x
+    ;; combobulate-mode'.
+    ;; :hook ((python-ts-mode . combobulate-mode)
+    ;;       (js-ts-mode . combobulate-mode)
+    ;;       (css-ts-mode . combobulate-mode)
+    ;;       (yaml-ts-mode . combobulate-mode)
+    ;;       (json-ts-mode . combobulate-mode)
+    ;;       (typescript-ts-mode . combobulate-mode)
+    ;;       (tsx-ts-mode . combobulate-mode))
+    ;; Amend this to the directory where you keep Combobulate's source
+    ;; code.
+  ;; :load-path ("~/tmp/combobulate"))
+)
 
 (use-package sgml-mode
   :hook
@@ -312,24 +324,44 @@
   (sgml-basic-offset 2))
 
 (use-package prettier-js
-  :ensure t)
+  :ensure t
+  :config
+  (setq
+   prettier-js-command "/Users/vegardok/repos/omny-frontend/node_modules/.bin/prettier"
+   prettier-js-args '("--plugin prettier-plugin-svelte")))
+
+
 
 (use-package typescript-mode
   :ensure t
-  :mode "\\.tsx?\\'"
+  ;; :mode "\\.tsx?\\'"
   :after (flycheck)
-  :init
-  (add-hook 'typescript-mode-hook 'company-mode)
+  :config
   (add-hook 'typescript-mode-hook 'eglot-ensure)
   (add-hook 'typescript-mode-hook 'prettier-js-mode)
-  (define-derived-mode typescript-tsx-mode typescript-mode "TSX")
-  (add-to-list 'auto-mode-alist `(,(rx ".tsx" eos) . typescript-tsx-mode))
+  ;; (define-derived-mode typescript-tsx-mode typescript-mode "TSX")
+  ;; (add-to-list 'auto-mode-alist `(,(rx ".tsx" eos) . typescript-tsx-mode))
   :config
+  ;; (add-hook 'typescript-mode-hook 'company-mode)
   ;; (add-hook 'typescript-tsx-mode-hook #'sgml-electric-tag-pair-mode)
   ;; (flycheck-add-mode 'javascript-eslint 'typescript-mode)
   ;; (flycheck-add-next-checker 'lsp 'javascript-eslint 'append)
   (setq typescript-indent-level 2))
 
+
+
+
+(with-eval-after-load 'eglot
+	(define-key eglot-mode-map (kbd "C-M-<return>") 'eglot-code-actions)
+  (add-to-list 'eglot-server-programs
+							 '(svelte-mode . ("svelteserver" "--stdio"))))
+
+(use-package svelte-mode
+  :config
+  ;; (add-hook 'svelte-mode-hook 'company-mode)
+  (add-hook 'svelte-mode-hook 'eglot-ensure)
+  (add-hook 'svelte-mode-hook 'prettier-js-mode)
+  :ensure t)
 
 (use-package jsonnet-mode
   :ensure t)
@@ -350,36 +382,26 @@
   :ensure t
   :bind (("<backspace>" . backward-delete-char-untabify)))
 
-(use-package company
-  :ensure t
-  :diminish company-mode
-  :bind (("M-RET" . company-complete))
-  :config
-  (setq
-   company-minimum-prefix-length 1
-   company-idle-delay 0))
-
 ;; progn hook?
-(add-hook 'emacs-lisp-mode-hook 'company-mode)
+;; (add-hook 'emacs-lisp-mode-hook 'company-mode)
 
 (use-package magit
   :ensure t
-  :diminish (magit-auto-revert-mode
-         auto-revert-mode)
+  ;; :diminish (magit-auto-revert-mode
+	;;      auto-revert-mode)
   :config
   (add-hook 'git-commit-mode-hook 'turn-on-flyspell)
   (setq
    magit-diff-refine-hunk 'all
    ;; magit-commit-arguments (quote ("--no-verify"))
    magit-commit-show-diff nil
-   magit-diff-highlight-indentation (quote (("" . tabs)))
    ;; magit-rebase-arguments (quote ("--autosquash"))
    magit-refs-sections-hook (quote (magit-insert-local-branches))
    ;; magit-refs-show-margin nil
    ;; magit-revert-buffers nil
    ;; magit-auto-revert-mode nil
    ;; magit-visit-ref-behavior '(create-branch checkout-branch)
-  ;; magit-visit-ref-behavior (quote (checkout-branch))
+   ;; magit-visit-ref-behavior (quote (checkout-branch))
    magit-log-margin '(t "%Y-%m-%d" magit-log-margin-width t 18)
    magit-log-margin-show-committer-date nil
    magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)
@@ -390,7 +412,7 @@
   :ensure t
   :config
   (setq auto-dim-other-buffers-mode t
-    auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+	auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
   (custom-set-faces
    '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
 
@@ -418,7 +440,7 @@
   :mode "\\.rs\\'"
   :init
 
-  (add-hook 'rust-mode-hook 'company-mode)
+  ;; (add-hook 'rust-mode-hook 'company-mode)
   :bind
   ("C-c C-c" . rust-run)
   :config
@@ -439,6 +461,8 @@
   :ensure t)
 
 
+;; (desktop-read)
+;; (desktop-save-mode 1)
 
 
 ;; Customize
@@ -448,9 +472,9 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(ansi-color-faces-vector
-   [default default default italic underline success warning error])
+	 [default default default italic underline success warning error])
  '(ansi-color-names-vector
-   ["#212526" "#ff4b4b" "#b4fa70" "#fce94f" "#729fcf" "#ad7fa8" "#8cc4ff" "#eeeeec"])
+	 ["#212526" "#ff4b4b" "#b4fa70" "#fce94f" "#729fcf" "#ad7fa8" "#8cc4ff" "#eeeeec"])
  '(auto-dim-other-buffers-mode t)
  '(background-mode dark)
  '(backup-by-copying t)
@@ -469,39 +493,43 @@
  '(global-auto-complete-mode nil)
  '(global-font-lock-mode t)
  '(grep-find-ignored-directories
-   '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
+	 '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
  '(grep-find-ignored-files
-   '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
+	 '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
  '(groovy-indent-offset 2)
  '(helm-mode t)
  '(imenu-auto-rescan t)
- '(indent-tabs-mode nil)
+ '(indent-tabs-mode t)
  '(inhibit-startup-screen t)
  '(js-indent-level 2)
  '(jsonnet-indent-level 4)
  '(kept-new-versions 2)
  '(kept-old-versions 2)
- '(magit-clone-set-remote\.pushDefault t)
+ '(magit-clone-set-remote.pushDefault t)
+ '(magit-diff-highlight-indentation nil)
  '(minibuffer-prompt-properties
-   '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
+	 '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(nginx-indent-level 2)
  '(package-selected-packages
-   '(python-mode go-mode ein pyvenv lsp-pyright nginx-mode prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+	 '(company-mode graphql-mode svelte-mode python-mode go-mode ein pyvenv lsp-pyright nginx-mode prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+ '(pixel-scroll-precision-mode t)
  '(pop-up-windows t)
  '(projectile-use-git-grep t)
+ '(require-final-newline nil)
  '(ruby-deep-arglist nil)
  '(same-window-regexps '("*"))
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
  '(show-trailing-whitespace nil)
- '(tab-width 4)
+ '(standard-indent 2)
+ '(tab-width 2)
  '(tool-bar-mode nil)
  '(truncate-partial-width-windows nil)
  '(version-control 'never)
  '(w3m-home-page "https://news.ycombinator.com")
  '(warning-suppress-types '((lsp-mode)))
  '(whitespace-style
-   '(face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))
+	 '(face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))
  '(winner-mode t))
 
 
@@ -525,3 +553,11 @@
 
 
 (diminish 'subword-mode)
+
+
+(add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
+
+(add-hook 'prog-mode-hook (lambda ()
+			    (whitespace-mode t)
+			    (diminish 'whitespace-mode)
+			    ))

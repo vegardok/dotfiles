@@ -38,3 +38,4 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
+setopt localoptions rmstarsilent

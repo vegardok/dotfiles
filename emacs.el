@@ -52,11 +52,11 @@
 (defun eslint-fix-file ()
   (interactive)
   (let* ((root (locate-dominating-file
-		(or (buffer-file-name) default-directory)
-		"node_modules"))
-	 (eslint (and root
-		      (expand-file-name "node_modules/eslint/bin/eslint.js"
-					root))))
+                (or (buffer-file-name) default-directory)
+                "node_modules"))
+         (eslint (and root
+                      (expand-file-name "node_modules/eslint/bin/eslint.js"
+                                        root))))
     (message "eslint --fixing the file" (buffer-file-name))
     (shell-command (concat eslint " --fix " (buffer-file-name)))
     (revert-buffer t t)))
@@ -90,16 +90,20 @@
   (setq
    company-minimum-prefix-length 1
    company-idle-delay 0
-	 company-global-modes '(not shell-mode)))
+   company-global-modes '(not shell-mode)))
 (add-hook 'after-init-hook 'global-company-mode)
 
 (use-package eglot
-	:ensure t
-	:config
-	(setq
-	 eglot-confirm-server-initiated-edits nil
-	 eglot-events-buffer-size 0)
-	:bind (("C-M-<return>" . eglot-code-actions)))
+  :ensure t
+  :config
+  (setq
+   eglot-confirm-server-initiated-edits nil
+   eglot-connect-timeout
+   eglot-events-buffer-size 0
+   eglot-ignored-server-capabilities    '()
+   ;; eglot-ignored-server-capabilities '(:hoverProvider  :implementationProvider :declarationProvider :referencesProvider :documentHighlightProvider :documentSymbolProvider :workspaceSymbolProvider :codeLensProvider :documentFormattingProvider :documentRangeFormattingProvider :documentOnTypeFormattingProvider :renameProvider :documentLinkProvider :colorProvider :foldingRangeProvider :executeCommandProvider :inlayHintProvider)
+   )
+  :bind (("C-M-<return>" . eglot-code-actions)))
 
 (use-package diminish
   :ensure t)
@@ -150,12 +154,22 @@
 
 (use-package projectile
   :ensure t
-	 :init
+  :init
   (projectile-mode +1)
   :config
   (setq
    projectile-use-git-grep t
-   projectile-project-search-path '("~/repos" ("~/repos/omny-frontend" . 2))))
+   projectile-project-search-path '("~/repos" ("~/repos/omny-frontend" . 2)))
+
+
+  ;; (projectile-register-project-type
+  ;;  'npm '("package.json")
+  ;;  :project-file "package.json"
+  ;;  :compile "pnpm install"
+  ;;  :test "pnpm test"
+  ;;  :run "pnpm dev"
+  ;;  :test-suffix ".test.ts")
+  )
 
 (use-package helm-projectile
   :ensure t
@@ -167,10 +181,10 @@
   :ensure t
   ;; :diminish helm-mode
   :bind (("C-x M-x" . execute-extended-command)
-	 ("M-x" . helm-M-x)
-	 ("C-x C-f" . helm-find-files)
-	 ("M-y" . helm-show-kill-ring)
-	 ("C-x b" . 'helm-mini))
+         ("M-x" . helm-M-x)
+         ("C-x C-f" . helm-find-files)
+         ("M-y" . helm-show-kill-ring)
+         ("C-x b" . 'helm-mini))
   :config
   (setq
    helm-candidate-number-limit 50
@@ -185,11 +199,11 @@
 (use-package helm-swoop
   :ensure t
   :bind (
-	 ()
-	 :map prog-mode-map (("C-M-s" . helm-swoop))
-	 :map helm-swoop-map
-	 ("C-r" . helm-previous-line)
-	 ("C-s" . helm-next-line))
+         ("C-M-s" . helm-swoop)
+         ;; :map prog-mode-map (("C-M-s" . helm-swoop))
+         :map helm-swoop-map
+         ("C-r" . helm-previous-line)
+         ("C-s" . helm-next-line))
   :config
   (setq helm-swoop-pre-input-function (lambda () "")))
 
@@ -216,7 +230,7 @@
   :config
   (setq flycheck-check-syntax-automatically (quote (save mode-enabled)))
   ;; (add-hook 'after-init-hook #'global-flycheck-mode)
-	)
+  )
 
 (windmove-default-keybindings 'meta)
 
@@ -249,19 +263,19 @@
     (interactive)
     (dolist (grammar
              '(
-							 (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
-							 (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-							 (go "https://github.com/tree-sitter/tree-sitter-go")
-							 (html "https://github.com/tree-sitter/tree-sitter-html")
-							 (json "https://github.com/tree-sitter/tree-sitter-json")
-							 (make "https://github.com/alemuller/tree-sitter-make")
-							 (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-							 (toml "https://github.com/tree-sitter/tree-sitter-toml")
-							 (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
+               (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")
+               (elisp "https://github.com/Wilfred/tree-sitter-elisp")
+               (go "https://github.com/tree-sitter/tree-sitter-go")
+               (html "https://github.com/tree-sitter/tree-sitter-html")
+               (json "https://github.com/tree-sitter/tree-sitter-json")
+               (make "https://github.com/alemuller/tree-sitter-make")
+               (markdown "https://github.com/ikatyang/tree-sitter-markdown")
+               (toml "https://github.com/tree-sitter/tree-sitter-toml")
+               (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
                (css "https://github.com/tree-sitter/tree-sitter-css")
                (javascript . ("https://github.com/tree-sitter/tree-sitter-javascript" "master" "src"))
                (python "https://github.com/tree-sitter/tree-sitter-python")
-							 (svelte "https://github.com/Himujjal/tree-sitter-svelte" "master" "src")
+               (svelte "https://github.com/Himujjal/tree-sitter-svelte" "master" "src")
                ;; (tsx . ("https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src"))
 
                (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
@@ -299,21 +313,21 @@
   ;;   ;; Note that you may have to restart Emacs for this to take effect!
   ;;   (setq combobulate-key-prefix "C-c o")
 
-    ;; Optional, but recommended.
-    ;;
-    ;; You can manually enable Combobulate with `M-x
-    ;; combobulate-mode'.
-    ;; :hook ((python-ts-mode . combobulate-mode)
-    ;;       (js-ts-mode . combobulate-mode)
-    ;;       (css-ts-mode . combobulate-mode)
-    ;;       (yaml-ts-mode . combobulate-mode)
-    ;;       (json-ts-mode . combobulate-mode)
-    ;;       (typescript-ts-mode . combobulate-mode)
-    ;;       (tsx-ts-mode . combobulate-mode))
-    ;; Amend this to the directory where you keep Combobulate's source
-    ;; code.
+  ;; Optional, but recommended.
+  ;;
+  ;; You can manually enable Combobulate with `M-x
+  ;; combobulate-mode'.
+  ;; :hook ((python-ts-mode . combobulate-mode)
+  ;;       (js-ts-mode . combobulate-mode)
+  ;;       (css-ts-mode . combobulate-mode)
+  ;;       (yaml-ts-mode . combobulate-mode)
+  ;;       (json-ts-mode . combobulate-mode)
+  ;;       (typescript-ts-mode . combobulate-mode)
+  ;;       (tsx-ts-mode . combobulate-mode))
+  ;; Amend this to the directory where you keep Combobulate's source
+  ;; code.
   ;; :load-path ("~/tmp/combobulate"))
-)
+  )
 
 (use-package sgml-mode
   :hook
@@ -327,8 +341,9 @@
   :ensure t
   :config
   (setq
-   prettier-js-command "/Users/vegardok/repos/omny-frontend/node_modules/.bin/prettier"
-   prettier-js-args '("--plugin prettier-plugin-svelte")))
+   prettier-js-command "/Users/vegardok/.nvm/versions/node/v20.9.0/bin/prettier"
+   ;; prettier-js-args '("--plugin prettier-plugin-svelte")
+   ))
 
 
 
@@ -352,9 +367,9 @@
 
 
 (with-eval-after-load 'eglot
-	(define-key eglot-mode-map (kbd "C-M-<return>") 'eglot-code-actions)
+  (define-key eglot-mode-map (kbd "C-M-<return>") 'eglot-code-actions)
   (add-to-list 'eglot-server-programs
-							 '(svelte-mode . ("svelteserver" "--stdio"))))
+               '(svelte-mode . ("svelteserver" "--stdio"))))
 
 (use-package svelte-mode
   :config
@@ -388,7 +403,7 @@
 (use-package magit
   :ensure t
   ;; :diminish (magit-auto-revert-mode
-	;;      auto-revert-mode)
+  ;;      auto-revert-mode)
   :config
   (add-hook 'git-commit-mode-hook 'turn-on-flyspell)
   (setq
@@ -412,7 +427,7 @@
   :ensure t
   :config
   (setq auto-dim-other-buffers-mode t
-	auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
+        auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
   (custom-set-faces
    '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
 
@@ -460,6 +475,10 @@
 (use-package nginx-mode
   :ensure t)
 
+(use-package editorconfig
+  :ensure t
+  :config
+  (editorconfig-mode 1))
 
 ;; (desktop-read)
 ;; (desktop-save-mode 1)
@@ -472,9 +491,9 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(ansi-color-faces-vector
-	 [default default default italic underline success warning error])
+   [default default default italic underline success warning error])
  '(ansi-color-names-vector
-	 ["#212526" "#ff4b4b" "#b4fa70" "#fce94f" "#729fcf" "#ad7fa8" "#8cc4ff" "#eeeeec"])
+   ["#212526" "#ff4b4b" "#b4fa70" "#fce94f" "#729fcf" "#ad7fa8" "#8cc4ff" "#eeeeec"])
  '(auto-dim-other-buffers-mode t)
  '(background-mode dark)
  '(backup-by-copying t)
@@ -493,13 +512,15 @@
  '(global-auto-complete-mode nil)
  '(global-font-lock-mode t)
  '(grep-find-ignored-directories
-	 '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
+   '("SCCS" "RCS" "CVS" "MCVS" ".svn" ".git" ".hg" ".bzr" "_MTN" "_darcs" "{arch}" "dist" "node_modules" "external" "coverage" "vendor" "out" "build"))
  '(grep-find-ignored-files
-	 '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
+   '(".#*" "*.o" "*~" "*.bin" "*.lbin" "*.so" "*.a" "*.ln" "*.blg" "*.bbl" "*.elc" "*.lof" "*.glo" "*.idx" "*.lot" "*.fmt" "*.tfm" "*.class" "*.fas" "*.lib" "*.mem" "*.x86f" "*.sparcf" "*.dfsl" "*.pfsl" "*.d64fsl" "*.p64fsl" "*.lx64fsl" "*.lx32fsl" "*.dx64fsl" "*.dx32fsl" "*.fx64fsl" "*.fx32fsl" "*.sx64fsl" "*.sx32fsl" "*.wx64fsl" "*.wx32fsl" "*.fasl" "*.ufsl" "*.fsl" "*.dxl" "*.lo" "*.la" "*.gmo" "*.mo" "*.toc" "*.aux" "*.cp" "*.fn" "*.ky" "*.pg" "*.tp" "*.vr" "*.cps" "*.fns" "*.kys" "*.pgs" "*.tps" "*.vrs" "*.pyc" "*.pyo" "*.lock" "package-lock.json"))
  '(groovy-indent-offset 2)
+ '(helm-ff-image-cache-max-len 0)
  '(helm-mode t)
+ '(helm-move-to-line-cycle-in-source nil)
  '(imenu-auto-rescan t)
- '(indent-tabs-mode t)
+ '(indent-tabs-mode nil)
  '(inhibit-startup-screen t)
  '(js-indent-level 2)
  '(jsonnet-indent-level 4)
@@ -508,12 +529,13 @@
  '(magit-clone-set-remote.pushDefault t)
  '(magit-diff-highlight-indentation nil)
  '(minibuffer-prompt-properties
-	 '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
+   '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(nginx-indent-level 2)
  '(package-selected-packages
-	 '(company-mode graphql-mode svelte-mode python-mode go-mode ein pyvenv lsp-pyright nginx-mode prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
+   '(editorconfig company-mode graphql-mode svelte-mode python-mode go-mode ein pyvenv lsp-pyright nginx-mode prettier-js helm-lsp lsp-ui lsp-mode uuidgen jsonnet-mode peg eglot cargo flycheck-rust rust-mode terraform-mode flx counsel dockerfile-mode groovy-mode wgrep yaml-mode treemacs-projectile treemacs tide typescript-mode restclient smartparens cljr-helm clj-refactor lorem-ipsum cider clojure-mode auto-dim-other-buffers org-bullets org-mode helm-c-yasnippet yasnippet-snippets yasnippet powerline company-tern tern exec-path-from-shell which-key web-mode use-package try scala-mode rjsx-mode nodejs-repl multiple-cursors markdown-mode magit json-mode helm-swoop helm-projectile helm-ls-git haskell-mode flycheck diminish company-web))
  '(pixel-scroll-precision-mode t)
  '(pop-up-windows t)
+ '(projectile-compile-use-comint-mode t)
  '(projectile-use-git-grep t)
  '(require-final-newline nil)
  '(ruby-deep-arglist nil)
@@ -529,7 +551,7 @@
  '(w3m-home-page "https://news.ycombinator.com")
  '(warning-suppress-types '((lsp-mode)))
  '(whitespace-style
-	 '(face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))
+   '(face spaces tabs newline space-mark tab-mark newline-mark trailing indentation))
  '(winner-mode t))
 
 
@@ -557,7 +579,9 @@
 
 (add-hook 'prog-mode-hook (lambda () (display-line-numbers-mode t)))
 
-(add-hook 'prog-mode-hook (lambda ()
-			    (whitespace-mode t)
-			    (diminish 'whitespace-mode)
-			    ))
+(add-hook
+ 'prog-mode-hook
+ (lambda ()
+   (whitespace-mode t)
+   (diminish 'whitespace-mode)
+   ))

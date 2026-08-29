@@ -1,7 +1,7 @@
-;;; sensible-defaults.el --- Reasonable settings for getting started.
+;;; sensible-defaults.el --- Reasonable settings for getting started.  -*- lexical-binding: t; -*-
 
 ;; Author: Harry R. Schwartz <hello@harryrschwartz.com>
-;; Version: 1.0.0
+;; Version: 1.1.0
 ;; URL: https://github.com/hrs/sensible-defaults.el/sensible-defaults.el
 
 ;; This file is NOT part of GNU Emacs.
@@ -20,6 +20,13 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;; Emacs 31.1 revision: dropped settings that are now built-in defaults
+;; (transient-mark-mode, global-font-lock-mode, show-paren-mode),
+;; replaced the `yes-or-no-p' fset hack with `use-short-answers',
+;; modernized GC tuning, and removed redundant keybindings.
 
 ;;; Code:
 
@@ -41,16 +48,22 @@ there's no active region."
 
 ;; Settings:
 
-(defun sensible-defaults/open-files-from-home-directory ()
-  "When opening a file, start searching at the user's home
-directory."
-  (setq default-directory "~/"))
+;; Emacs 31: `sensible-defaults/open-files-from-home-directory' removed.
+;; Setting `default-directory' at init only affects the initial buffer
+;; and does not change the GUI file-open dialog, so it was a no-op here.
+;;
+;; ;; (defun sensible-defaults/open-files-from-home-directory ()
+;; ;;   "When opening a file, start searching at the user's home
+;; ;; directory."
+;; ;;   (setq default-directory "~/"))
 
 (defun sensible-defaults/increase-gc-threshold ()
-  "Allow 100MB of memory (instead of 0.76MB) before calling
-garbage collection. This means GC runs less often, which speeds
-up some operations."
-  (setq gc-cons-threshold 100000000))
+  "Allow more memory before calling garbage collection.
+
+Emacs 31: lowered the old flat 100MB cap -- with native-comp and the
+improved GC, that caused rare but long pauses.  32MB is a better
+balance; consider reverting to the default after init."
+  (setq gc-cons-threshold 32000000))
 
 (defun sensible-defaults/delete-trailing-whitespace ()
   "Call DELETE-TRAILING-WHITESPACE every time a buffer is saved."
@@ -86,9 +99,12 @@ to (recursively) create the file's parent directories."
                              (y-or-n-p (format "Directory %s does not exist. Create it?" dir)))
                     (make-directory dir t)))))))
 
-(defun sensible-defaults/apply-changes-to-highlighted-region ()
-  "Turn on transient-mark-mode."
-  (transient-mark-mode t))
+;; Emacs 31: `sensible-defaults/apply-changes-to-highlighted-region'
+;; removed -- transient-mark-mode is already enabled by default.
+;;
+;; ;; (defun sensible-defaults/apply-changes-to-highlighted-region ()
+;; ;;   "Turn on transient-mark-mode."
+;; ;;   (transient-mark-mode t))
 
 (defun sensible-defaults/overwrite-selected-text ()
   "If some text is selected, and you type some text, delete the
@@ -115,22 +131,38 @@ buffer."
 buffers."
   (setq-default dired-listing-switches "-alh"))
 
+;; Emacs 31: `sensible-defaults/shorten-yes-or-no' now uses the modern
+;; `use-short-answers' variable instead of the old `fset' hack.
+;;
+;; ;; (defun sensible-defaults/shorten-yes-or-no ()
+;; ;;   "Don't ask `yes/no?', ask `y/n?'."
+;; ;;   (fset 'yes-or-no-p 'y-or-n-p))
 (defun sensible-defaults/shorten-yes-or-no ()
   "Don't ask `yes/no?', ask `y/n?'."
-  (fset 'yes-or-no-p 'y-or-n-p))
+  (setq use-short-answers t))
 
-(defun sensible-defaults/always-highlight-code ()
-  "Turn on syntax highlighting whenever possible."
-  (global-font-lock-mode t))
+;; Emacs 31: `sensible-defaults/always-highlight-code' removed --
+;; global-font-lock-mode is already enabled by default.
+;;
+;; ;; (defun sensible-defaults/always-highlight-code ()
+;; ;;   "Turn on syntax highlighting whenever possible."
+;; ;;   (global-font-lock-mode t))
 
 (defun sensible-defaults/refresh-buffers-when-files-change ()
   "When something changes a file, automatically refresh the
 buffer containing that file so they can't get out of sync."
   (global-auto-revert-mode t))
 
+;; Emacs 31: `show-paren-mode' is on by default, so only the delay
+;; tweak remains here.
+;;
+;; ;; (defun sensible-defaults/show-matching-parens ()
+;; ;;   "Visually indicate matching pairs of parentheses."
+;; ;;   (show-paren-mode t)
+;; ;;   (setq show-paren-delay 0.0))
 (defun sensible-defaults/show-matching-parens ()
-  "Visually indicate matching pairs of parentheses."
-  (show-paren-mode t)
+  "Highlight matching parens instantly (the mode itself is enabled
+by default in Emacs 31)."
   (setq show-paren-delay 0.0))
 
 (defun sensible-defaults/flash-screen-instead-of-ringing-bell ()
@@ -142,6 +174,8 @@ instead of ringing the terminal bell."
   "Set the default line length to LINE-LENGTH."
   (setq-default fill-column line-length))
 
+;; Emacs 31: the default of `ns-pop-up-frames' is now `fresh'; setting
+;; it to nil still differs (always reuse the existing frame).
 (defun sensible-defaults/open-clicked-files-in-same-frame-on-mac ()
   "When you double-click on a file in the Mac Finder open it as a
 buffer in the existing Emacs frame, rather than creating a new
@@ -155,7 +189,6 @@ insert the text where point is, not where the mouse cursor is."
 
 (defun sensible-defaults/use-all-settings ()
   "Use all of the sensible-defaults settings."
-  (sensible-defaults/open-files-from-home-directory)
   (sensible-defaults/increase-gc-threshold)
   (sensible-defaults/delete-trailing-whitespace)
   (sensible-defaults/treat-camelcase-as-separate-words)
@@ -163,14 +196,12 @@ insert the text where point is, not where the mouse cursor is."
   (sensible-defaults/make-scripts-executable)
   (sensible-defaults/single-space-after-periods)
   (sensible-defaults/offer-to-create-parent-directories-on-save)
-  (sensible-defaults/apply-changes-to-highlighted-region)
   (sensible-defaults/overwrite-selected-text)
   (sensible-defaults/ensure-that-files-end-with-newline)
   (sensible-defaults/confirm-closing-emacs)
   (sensible-defaults/quiet-startup)
   (sensible-defaults/make-dired-file-sizes-human-readable)
   (sensible-defaults/shorten-yes-or-no)
-  (sensible-defaults/always-highlight-code)
   (sensible-defaults/refresh-buffers-when-files-change)
   (sensible-defaults/show-matching-parens)
   ;; (sensible-defaults/flash-screen-instead-of-ringing-bell)
@@ -180,25 +211,40 @@ insert the text where point is, not where the mouse cursor is."
 
 ;; Keybindings:
 
+;; Emacs 31: M-; is `comment-dwim' by default, which inserts/indents a
+;; comment but does NOT comment out a whole line with no active region.
+;; Keeping the binding preserves the line-commenting behavior.
 (defun sensible-defaults/bind-commenting-and-uncommenting ()
   "Comment or uncomment a region by hitting M-;."
   (global-set-key (kbd "M-;")
                   'sensible-defaults/comment-or-uncomment-region-or-line)) ;
 
+;; Emacs 31: <home>/<end> are bound to `beginning-of-buffer'/
+;; `end-of-buffer' by default in this NS build; this binding restores
+;; the more useful line-based movement.
 (defun sensible-defaults/bind-home-and-end-keys ()
   "Make <home> and <end> move point to the beginning and end of
 the line, respectively."
   (global-set-key (kbd "<home>") 'move-beginning-of-line)
   (global-set-key (kbd "<end>") 'move-end-of-line))
 
+;; Emacs 31: dropped the duplicate C-= / C-_ bindings -- with the Shift
+;; modifier they are the same keys as C-+ / C--.
+;;
+;; ;; (defun sensible-defaults/bind-keys-to-change-text-size ()
+;; ;;   "Bind C-+ and C-- to increase and decrease text size,
+;; ;; respectively."
+;; ;;   (define-key global-map (kbd "C-)") 'sensible-defaults/reset-text-size)
+;; ;;   (define-key global-map (kbd "C-+") 'text-scale-increase)
+;; ;;   (define-key global-map (kbd "C-=") 'text-scale-increase)
+;; ;;   (define-key global-map (kbd "C-_") 'text-scale-decrease)
+;; ;;   (define-key global-map (kbd "C--") 'text-scale-decrease))
 (defun sensible-defaults/bind-keys-to-change-text-size ()
   "Bind C-+ and C-- to increase and decrease text size,
 respectively."
   (define-key global-map (kbd "C-)") 'sensible-defaults/reset-text-size)
   (define-key global-map (kbd "C-+") 'text-scale-increase)
-  (define-key global-map (kbd "C-=") 'text-scale-increase)
-  (define-key global-map (kbd "C-_") 'text-scale-decrease)
-  (define-key global-map (kbd "C--") 'text-scale-decrease))
+  (define-key global-map (kbd "C-_") 'text-scale-decrease))
 
 (defun sensible-defaults/use-all-keybindings ()
   "Use all of the sensible-defaults keybindings."

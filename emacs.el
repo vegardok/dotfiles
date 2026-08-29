@@ -1,509 +1,358 @@
-(set-face-attribute 'default nil :family "Ubuntu Mono")
-(set-face-attribute 'default nil :height 210)
+;; -*- lexical-binding: t; -*-
 
+;;; Emacs config — rebooted.
+;; The pre-reboot config is archived verbatim in emacs-graveyard.el.
+;; Anything old that gets revived should be modernized and cleaned up on
+;; its way back in, one increment at a time.
+
+;;; Font
+(set-face-attribute 'default nil :family "Ubuntu Mono" :height 180)
+
+;;; Sensible defaults
 (load-file "~/repos/dotfiles/sensible-defaults.el")
-
 (sensible-defaults/use-all-settings)
 (sensible-defaults/bind-commenting-and-uncommenting)
 
-(setq init-dir "~/.emacs.d/")
+;;; Native compilation
+;; Async native-comp of installed packages (agent-shell, shell-maker, ...)
+;; emits spurious "function not known to be defined" warnings for
+;; autoloaded / macro-generated functions. They're harmless package lint
+;; noise; don't spam the startup buffer with them.
+(add-to-list 'warning-suppress-types '(native-compiler))
 
+;;; straight.el bootstrap
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
 
+(straight-use-package 'use-package)
+(setq straight-use-package-by-default t)
 
-(defvar gnu '("gnu" . "https://elpa.gnu.org/packages/"))
-(defvar melpa '("melpa" . "https://melpa.org/packages/"))
+;;; macOS modifiers
+(setq mac-option-modifier nil
+      mac-command-modifier 'meta
+      select-enable-clipboard t)
 
+;;; Window / buffer navigation
+;; M-<left>/<right>/<up>/<down> to move focus between window splits
+(windmove-default-keybindings 'meta)
 
-;; Add marmalade to package repos
-(setq package-archives nil)
-(add-to-list 'package-archives melpa t)
-(add-to-list 'package-archives gnu t)
-
-
-(unless (and (file-exists-p (concat init-dir "elpa/archives/gnu"))
-             (file-exists-p (concat init-dir "elpa/archives/melpa")))
-  (package-refresh-contents))
-
- ;; (defun packages-install (&rest packages)
- ;;   (message "running packages-install")
- ;;   (mapc (lambda (package)
- ;;           (let ((name (car package))
- ;;                 (repo (cdr package)))
- ;;             (when (not (package-installed-p name))
- ;;               (let ((package-archives (list repo)))
- ;;                 (package-initialize)
- ;;                 (package-install name)))))
- ;;         packages)
- ;;   (package-initialize)
- ;;   (delete-other-windows))
-
- ;; (defun init--install-packages ()
- ;;   (message "Lets install some packages")
- ;;   (packages-install
- ;;    ;; Since use-package this is the only entry here
- ;;    ;; ALWAYS try to use use-package!
- ;;    (cons 'use-package melpa)))
-
-
-;; Install everything
-;; (condition-case nil
-;;     (init--install-packages)
-;;   (error
-;;    (package-refresh-contents)
-;;    (init--install-packages)))
-
-
-
-;; Functions
-;; (defun eslint-fix-file ()
-;;   (interactive)
-;;   (let* ((root (locate-dominating-file
-;;                 (or (buffer-file-name) default-directory)
-;;                 "node_modules"))
-;;          (eslint (and root
-;;                       (expand-file-name "node_modules/eslint/bin/eslint.js"
-;;                                         root))))
-;;     (message "eslint --fixing the file" (buffer-file-name))
-;;     (shell-command (concat eslint " --fix " (buffer-file-name)))
-;;     (revert-buffer t t)))
-
-
-;;; Global Settings
-(defalias 'list-buffers 'ibuffer)
-(load-theme 'deeper-blue)
-(if (not window-system)
-    (set-face-background 'default "unspecified-bg"))
-(set-face-foreground 'line-number-current-line "spring green")
-(hl-line-mode 1)
-(set-face-background 'hl-line "#2d3b42")
+;;; UI
 (global-hl-line-mode)
 (blink-cursor-mode 0)
 (menu-bar-mode 1)
 (tool-bar-mode -1)
-
+(when (fboundp 'scroll-bar-mode)
+  (scroll-bar-mode -1))
+(winner-mode t)
 (setq frame-title-format "Emacs")
 
-(setq mac-option-modifier nil
-      mac-command-modifier 'meta
-      x-select-enable-clipboard t)
-(setq isearch-lax-whitespace nil)
+;; Treesit indicator: shows [ts] bright when a treesit parser is active
+(add-to-list 'mode-line-misc-info
+             '(" "
+               (:eval (if (treesit-parser-list)
+                          (propertize "[ts]" 'face 'success)
+                        (propertize "[ts]" 'face 'shadow)))))
 
+(defalias 'list-buffers 'ibuffer)
+(setq display-buffer-alist
+      '((".*"
+         (display-buffer-same-window)
+         (inhibit-same-window . nil))))
 
-(use-package company
-  :ensure t
-  :diminish company-mode
-  :bind (("M-RET" . company-complete))
-  :config
-  (setq
-   company-minimum-prefix-length 1
-   company-idle-delay nil
-   company-global-modes '(not shell-mode)))
+;; major modes + eglot (TypeScript, Python)
+;; The ts-modes (:mode mappings below) are needed on Emacs 30 AND 31 --
+;; tree-sitter major modes are still *not* selected by default even in
+;; 31.1 (the new `treesit-enabled-modes' option defaults to nil).
+;; Grammars are auto-installed via `treesit-auto-install-grammar' (new
+;; in Emacs 31, default `ask') using the recipes in
+;; `treesit-language-source-alist' below; on Emacs 30 they had to be
+;; installed manually with M-x treesit-install-language-grammar.
+;; Old typescript-mode/tsx derived modes/prettier-js are obsolete --
+;; formatting is handled by eglot (server) when available.
+(setq treesit-language-source-alist
+      '((typescript "https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src")
+        (tsx "https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src")
+        (python "https://github.com/tree-sitter/tree-sitter-python")))
+;; (Grammars for all of these are already compiled; to refresh one:
+;;  M-x treesit-install-language-grammar RET <lang>)
 
-(add-hook 'after-init-hook 'global-company-mode)
+(defun my-eglot-sanitize-markup (orig-fn markup &optional mode)
+  "Convert raw HTML entities (like &nbsp;) in LSP hover markup before rendering."
+  (if (and (stringp markup) (string-match-p "&[a-zA-Z0-9#]+;" markup))
+      (let ((clean (with-temp-buffer
+                     (insert markup)
+                     (goto-char (point-min))
+                     (while (search-forward "&nbsp;" nil t)
+                       (replace-match " "))
+                     (goto-char (point-min))
+                     (while (search-forward "&gt;" nil t)
+                       (replace-match ">"))
+                     (goto-char (point-min))
+                     (while (search-forward "&lt;" nil t)
+                       (replace-match "<"))
+                     (goto-char (point-min))
+                     (while (search-forward "&amp;" nil t)
+                       (replace-match "&"))
+                     (goto-char (point-min))
+                     (while (search-forward "&quot;" nil t)
+                       (replace-match "\""))
+                     (buffer-string))))
+        (funcall orig-fn clean mode))
+    (funcall orig-fn markup mode)))
+
+(defun my-eglot-hover-multiline (orig-fn cb &rest args)
+  "Allow Eglot hover docstrings to display multi-line in the echo area.
+Overrides Eglot's default 1-line truncation passed to ElDoc via `:echo pos'."
+  (apply orig-fn
+         (lambda (info &rest plist)
+           (apply cb info (plist-put plist :echo info)))
+         args))
+
+(defun my-eglot-rich-capf-annotations (orig-fn &rest args)
+  "Enrich Eglot completion candidates in Vertico with prefix kind tags
+and resolved LSP type signatures/parameters/return types."
+  (let ((res (apply orig-fn args)))
+    (if (and (consp res) (>= (length res) 3))
+        (let* ((beg (nth 0 res))
+               (end (nth 1 res))
+               (table (nth 2 res))
+               (plist (copy-sequence (nthcdr 3 res)))
+               (docsig-fn (plist-get plist :company-docsig))
+               (doc-buffer-fn (plist-get plist :company-doc-buffer)))
+          (setq plist
+                (plist-put
+                 plist :affixation-function
+                 (lambda (candidates)
+                   (mapcar
+                    (lambda (cand)
+                      (let* ((item (get-text-property 0 'eglot--lsp-item cand))
+                             (kind-id (and item (plist-get item :kind)))
+                             (kind (and kind-id (alist-get kind-id eglot--kind-names)))
+                             ;; 1. Try detail string (TypeScript, etc.)
+                             (raw-detail (or (and docsig-fn (funcall docsig-fn cand))
+                                             (and item (plist-get item :detail))))
+                             (clean-detail
+                              (when (stringp raw-detail)
+                                (let* ((s (string-trim raw-detail))
+                                       ;; Remove leading LSP prefix classifier e.g. (method)
+                                       (s (replace-regexp-in-string "^([a-zA-Z ]+)[ \t]*" "" s))
+                                       ;; Collapse embedded newlines/indentation to a single clean line
+                                       (s (replace-regexp-in-string "[\r\n\t ]+" " " s)))
+                                  s)))
+                             ;; 2. For servers like Pyright that put signatures in documentation markdown
+                             (doc-sig
+                              (when (or (null clean-detail) (string-empty-p clean-detail))
+                                (let* ((raw-doc (or (and item (plist-get item :documentation))
+                                                    (when doc-buffer-fn
+                                                      (when-let* ((buf (funcall doc-buffer-fn cand)))
+                                                        (with-current-buffer buf (buffer-string))))))
+                                       (doc-str (cond
+                                                 ((stringp raw-doc) raw-doc)
+                                                 ((and (listp raw-doc) (plist-get raw-doc :value))
+                                                  (plist-get raw-doc :value))
+                                                 (t nil))))
+                                  (when doc-str
+                                    (with-temp-buffer
+                                      (insert doc-str)
+                                      (goto-char (point-min))
+                                      (let (found)
+                                        (while (and (not found) (not (eobp)))
+                                          (let ((line (string-trim (buffer-substring (line-beginning-position) (line-end-position)))))
+                                            (unless (or (string-empty-p line)
+                                                        (string-prefix-p "```" line)
+                                                        (string-prefix-p "---" line))
+                                              (setq found (replace-regexp-in-string "^([a-zA-Z ]+)[ \t]*" "" line)))
+                                            (forward-line 1)))
+                                        (when found
+                                          (replace-regexp-in-string "[\r\n\t ]+" " " found))))))))
+                             (sig (or (and clean-detail (not (string-empty-p clean-detail)) clean-detail)
+                                      doc-sig))
+                             (prefix (if kind
+                                         (propertize (format "%-12s " (format "[%s]" kind))
+                                                     'face 'font-lock-type-face)
+                                       ""))
+                             (suffix (if (and (stringp sig) (not (string-empty-p sig)))
+                                         (propertize (format "  %s" sig)
+                                                     'face 'font-lock-doc-face)
+                                       "")))
+                        (list cand prefix suffix)))
+                    candidates))))
+          (append (list beg end table) plist))
+      res)))
 
 (use-package eglot
-  :ensure t
+  ;; built into Emacs 30; servers used by default here:
+  ;;   typescript-ts-mode/tsx-ts-mode -> typescript-language-server
+  ;;   python-ts-mode                 -> pyright
+  :hook ((python-ts-mode typescript-ts-mode tsx-ts-mode) . eglot-ensure)
   :config
-  (setq
-   eglot-confirm-server-initiated-edits nil
-   eglot-connect-timeout 1
-   eglot-events-buffer-size 0
-   eglot-connect-timeout 100 ;; kotlin-language-server is slow to start
-   eglot-ignored-server-capabilities '())
-  :bind (("C-M-<return>" . eglot-code-actions)))
+  (setq eglot-confirm-server-initiated-edits nil)
+  (advice-add #'eglot--format-markup :around #'my-eglot-sanitize-markup)
+  (advice-add #'eglot-hover-eldoc-function :around #'my-eglot-hover-multiline)
+  (advice-add #'eglot-completion-at-point :around #'my-eglot-rich-capf-annotations))
 
-(use-package agent-shell
-  :ensure t
-  :ensure-system-package
-  ;; Add agent installation configs here
-  ((claude . "brew install claude-code")
-   (claude-code-acp . "npm install -g @zed-industries/claude-code-acp"))
+(use-package python
+  :straight nil
+  :mode (("\\.py\\'" . python-ts-mode))
+  :custom
+  (python-indent-offset 2))
+
+(use-package typescript
+  :straight nil
+  :mode (("\\.ts\\'" . typescript-ts-mode)
+         ("\\.tsx\\'" . tsx-ts-mode))
   :config
-  (setq agent-shell-anthropic-authentication
-	(agent-shell-anthropic-make-authentication :login t))
-  (setq agent-shell-google-authentication
-	(agent-shell-google-make-authentication :vertex-ai t))
-  (setq agent-shell-google-gemini-environment
-	(agent-shell-make-environment-variables
-	 "GOOGLE_CLOUD_LOCATION" "global"
-	 "GOOGLE_CLOUD_PROJECT" "arcline-playground")))
+  (setq-default typescript-indent-level 2
+                js-indent-level 2))
 
-;; (use-package diminish
-;;   :ensure t)
-
-
-
-;; (add-hook 'python-mode-hook 'company-mode)
-
-
-
-;; scroll one line at a time (less "jumpy" than defaults)
-(setq
- mouse-wheel-scroll-amount '(2 ((shift) . 2)) ;; one line at a time
- mouse-wheel-progressive-speed nil ;; don't accelerate scrolling
- mouse-wheel-follow-mouse 't ) ;; scroll window under mouse
-(setq
- scroll-step 1
- scroll-conservatively 10000) ;; keyboard scroll one line at a time
-
-(setq-default line-spacing 0.2)
-
-
-;; Packages
-
-(use-package try
-  :ensure t)
-
-;; (use-package dockerfile-mode
-;;   :ensure t)
-
-
-
-;; ;; status bar thing
-;; (use-package powerline
-;;   :ensure t
-;;   :config
-;;   (powerline-default-theme)
-;;   (setq powerline-display-hud nil
-;;         powerline-display-mule-info nil
-;;         powerline-display-buffer-size nil))
-
-
-
-;; (use-package which-key
-;;   :ensure t
-;;   :diminish which-key-mode
-;;   :config
-;;   (which-key-mode))
-
-;; (use-package graphql-mode
-;;   :ensure t)
-
-(use-package projectile
-  :ensure t
-  :diminish projectile-mode
-  :init
-  (projectile-mode +1)
-  :config
-  (setq
-   projectile-use-git-grep t))
-(add-hook 'compilation-filter-hook (lambda () (ansi-color-apply-on-region compilation-filter-start (point))))
-(setq compilation-scroll-output t)
-
-(use-package helm-projectile
-  :ensure t
-  :bind
-  ("M-r" . helm-projectile-grep)
-  ("C-x x" . helm-projectile))
-
-(use-package helm
-  :ensure t
-  ;; :diminish helm-mode
-  :bind (("C-x M-x" . execute-extended-command)
-         ("M-x" . helm-M-x)
-         ("C-x C-f" . helm-find-files)
-         ("M-y" . helm-show-kill-ring)
-         ("C-x b" . 'helm-mini))
-  :diminish helm-mode
-  :config
-  (setq
-   helm-candidate-number-limit 50
-   helm-mode-fuzzy-match t
-   helm-completion-style 'helm-fuzzy
-   helm-recentf-fuzzy-match t
-   helm-grep-file-path-style 'relative
-   completion-styles '(flex))
-  (helm-mode 1)
-  (when (boundp 'helm-file-cache)
-    (setq helm-file-cache nil)))
-
-;; ;; helm-projectile-sources-list
-;; (use-package helm-swoop
-;;   :ensure t
-;;   :bind (
-;;          ("C-M-s" . helm-swoop)
-;;          ;; :map prog-mode-map (("C-M-s" . helm-swoop))
-;;          :map helm-swoop-map
-;;          ("C-r" . helm-previous-line)
-;;          ("C-s" . helm-next-line))
-;;   :config
-;;   (setq helm-swoop-pre-input-function (lambda () "")))
-
-(use-package wgrep
-  :ensure t
-  :config (use-package wgrep-helm :ensure t))
-
-(use-package multiple-cursors
-  :ensure t
-  :config
-  (global-set-key (kbd "M-C-n") 'mc/mark-next-like-this)
-  (global-set-key (kbd "M-C-p") 'mc/mark-previous-like-this))
-
-(use-package groovy-mode
-  :ensure t
-  :mode "Jenkinsfile"
-  :config
-  (setq groovy-indent-offset 2))
-
-
-(use-package flycheck
-  :ensure t
-  ;; :diminish flycheck-mode
-  :config
-  (setq flycheck-check-syntax-automatically (quote (save mode-enabled)))
-  ;; (add-hook 'after-init-hook #'global-flycheck-mode)
-  )
-
-(windmove-default-keybindings 'meta)
-
-(global-unset-key "\C-t") ;; transpose-chars
-(global-unset-key "\M-t") ;; transpose-words
-(global-unset-key "\C-x\m") ;; mail
-
-(global-unset-key "\C-z")
-(global-unset-key "\C-x\C-z")
-
-;; (global-set-key (kbd "C-x c") 'comment-or-uncomment-region)
-
-(use-package exec-path-from-shell
-  :ensure t
-  :config (exec-path-from-shell-initialize))
-
-
-;; (setq treesit-language-source-alist
-;;    '((bash "https://github.com/tree-sitter/tree-sitter-bash")
-;;      (cmake "https://github.com/uyha/tree-sitter-cmake")
-;;      (css "https://github.com/tree-sitter/tree-sitter-css")
-;;      (elisp "https://github.com/Wilfred/tree-sitter-elisp")
-;;      (go "https://github.com/tree-sitter/tree-sitter-go")
-;;      (html "https://github.com/tree-sitter/tree-sitter-html")
-;;      (javascript "https://github.com/tree-sitter/tree-sitter-javascript" "master" "src")
-;;      (json "https://github.com/tree-sitter/tree-sitter-json")
-;;      (make "https://github.com/alemuller/tree-sitter-make")
-;;      (markdown "https://github.com/ikatyang/tree-sitter-markdown")
-;;      (python "https://github.com/tree-sitter/tree-sitter-python")
-;;      (toml "https://github.com/tree-sitter/tree-sitter-toml")
-;;      (tsx "https://github.com/tree-sitter/tree-sitter-typescript" "master" "tsx/src")
-;;      (typescript "https://github.com/tree-sitter/tree-sitter-typescript" "master" "typescript/src")
-;;      (yaml "https://github.com/ikatyang/tree-sitter-yaml")))
-
-;; (mapc #'treesit-install-language-grammar (mapcar #'car treesit-language-source-alist))
-
-(use-package prettier-js
-  :ensure t
-  :config
-  (setq
-   prettier-js-command "/Users/vegardok/.nvm/versions/node/v20.18.1/bin/prettier"
-   ;; prettier-js-args '("--plugin prettier-plugin-svelte")
-   ))
-
-
-(use-package typescript-mode
-  :ensure t
-  ;; :mode "\\.tsx?\\'"
-  :after (flycheck)
-  :config
-  ;; (add-hook 'typescript-mode-hook 'eglot-ensure)
-  ;; (add-hook 'typescript-ts-mode-hook 'eglot-ensure)
-  (add-hook 'tsx-ts-mode-hook 'eglot-ensure)
-  (add-hook 'typescript-mode-hook 'prettier-js-mode)
-  (add-hook 'typescript-ts-mode-hook 'prettier-js-mode)
-
-  ;; (define-derived-mode typescript-tsx-mode typescript-mode "TSX")
-  ;; (add-to-list 'auto-mode-alist `(,(rx ".tsx" eos) . typescript-tsx-mode))
-  :config
-  ;; (add-hook 'typescript-mode-hook 'company-mode)
-  ;; (add-hook 'typescript-tsx-mode-hook #'sgml-electric-tag-pair-mode)
-  ;; (flycheck-add-mode 'javascript-eslint 'typescript-mode)
-  ;; (flycheck-add-next-checker 'lsp 'javascript-eslint 'append)
-  (setq typescript-indent-level 2)
-
-  (define-derived-mode tsx-mode typescript-mode
-    "TypeScript[TSX]")
-  (put 'tsx-mode 'eglot-language-id "typescriptreact")
-
-  (add-to-list 'auto-mode-alist '("\\.tsx\\'" . tsx-mode)))
-
-
-
-
-
-
-
-
-
-
-;; (with-eval-after-load 'eglot
-;;   (define-key eglot-mode-map (kbd "C-M-<return>") 'eglot-code-actions)
-;;   (add-to-list 'eglot-server-programs
-;;                '(svelte-mode . ("svelteserver" "--stdio"))))
-
-;; (use-package svelte-mode
-;;   :config
-;;   ;; (add-hook 'svelte-mode-hook 'company-mode)
-;;   (add-hook 'svelte-mode-hook 'eglot-ensure)
-;;   (add-hook 'svelte-mode-hook 'prettier-js-mode)
-;;   :ensure t)
-
-;; (use-package jsonnet-mode
-;;   :ensure t)
-
-
-;; EDiff
-;; (defvar my-ediff-last-windows nil)
-;; (defun my-store-pre-ediff-winconfig ()
-;;   (setq my-ediff-last-windows (current-window-configuration)))
-;; (defun my-restore-pre-ediff-winconfig ()
-;;   (set-window-configuration my-ediff-last-windows))
-
-;; (add-hook 'ediff-before-setup-hook #'my-store-pre-ediff-winconfig)
-;; (add-hook 'ediff-quit-hook #'my-restore-pre-ediff-winconfig)
-
-;; ;; Markdown
+;;; Markdown (used by eglot to render LSP docstrings/hover info)
 (use-package markdown-mode
-  :ensure t
-  :bind (("<backspace>" . backward-delete-char-untabify)))
+  :custom
+  ;; Hide backticks and markup characters in rendered markdown
+  (markdown-hide-markup t))
 
-;; ;; progn hook?
-;; ;; (add-hook 'emacs-lisp-mode-hook 'company-mode)
+;;; Eldoc: dynamic rich documentation in the echo area
+;; Allow the bottom echo area / minibuffer to dynamically expand to show
+;; rendered multi-line docstrings and signatures as you navigate.
+(setq eldoc-documentation-strategy #'eldoc-documentation-default
+      eldoc-echo-area-use-multiline-p t
+      resize-mini-windows t
+      max-mini-window-height 0.35
+      eldoc-echo-area-display-truncation-message nil
+      eldoc-idle-delay 0.1)
 
-(use-package magit
-  :ensure t
-  ;; :diminish (magit-auto-revert-mode
-  ;;      auto-revert-mode)
+;;; Help buffers: fixed window at the bottom, not same-window
+;; The blanket display-buffer-alist rule below sends *Help*, *eglot-help*
+;; etc. into the current window, stomping on the code you were reading.
+;; These more specific rules pin them to a dedicated resizable bottom
+;; window instead. M-<arrow> / C-x o to jump in, `q' to close.
+(add-to-list 'display-buffer-alist
+             '(("\\`\\*\\(Help\|eglot-help\|eldoc\\|flymake\\).*\\*"
+                (display-buffer-reuse-window display-buffer-below-selected)
+                (window-height . 0.4))))
+
+;; Full docs for the symbol at point: eglot feeds its complete server
+;; docs (signature + docstring) through eldoc, and `eldoc-doc-buffer'
+;; renders them in *eldoc* -- displayed in the pinned bottom window per
+;; the display-buffer-alist rule above. This is also the stock C-h .
+;; binding in Emacs 28+, kept here for explicitness.
+(define-key global-map (kbd "C-h .") #'eldoc-doc-buffer)
+
+;;; Minibuffer-based code completion: Vertico + Consult
+;; Route in-buffer completion (eglot LSP completions, etc.) through the
+;; expanding minibuffer at the bottom instead of a floating inline popup.
+;; - M-RET triggers completion explicitly.
+;; - Marginalia annotates candidates with LSP types, signatures, and doc strings.
+;; - Orderless enables multi-term fuzzy drilldown filtering in the minibuffer.
+(setq completion-in-region-function #'consult-completion-in-region)
+(global-set-key (kbd "M-RET") #'completion-at-point)
+
+;;; agent-shell -- LLM agent shells in Emacs via ACP (Agent Client Protocol)
+;; We use the Pi agent. Pi manages its own credentials natively via /login
+;; (stored in ~/.pi/agent/auth.json), so no API-key handling is needed here.
+;;
+;; Start with:  M-x agent-shell-pi-start-agent
+(use-package agent-shell
   :config
-  ;; (add-hook 'git-commit-mode-hook 'turn-on-flyspell)
-  (magit-add-section-hook 'magit-status-sections-hook 'magit-insert-worktrees 'magit-insert-status-headers t)
-  (setq
-   magit-diff-refine-hunk 'all
-   ;; magit-commit-arguments (quote ("--no-verify"))
-   magit-commit-show-diff nil
-   ;; magit-rebase-arguments (quote ("--autosquash"))
-   ;; magit-refs-sections-hook (quote (magit-insert-local-branches))
-   ;; magit-refs-show-margin nil
-   ;; magit-revert-buffers nil
-   ;; magit-auto-revert-mode nil
-   ;; magit-visit-ref-behavior '(create-branch checkout-branch)
-   ;; magit-visit-ref-behavior (quote (checkout-branch))
-   magit-log-margin '(t "%Y-%m-%d" magit-log-margin-width t 18)
-   magit-log-margin-show-committer-date nil
-   magit-display-buffer-function (quote magit-display-buffer-same-window-except-diff-v1)
-   magit-diff-highlight-indentation nil))
-;; (use-package magit-delta
-;;   :ensure t
-;;   :hook (magit-mode . magit-delta-mode))
+  (setq agent-shell-pi-environment
+        (agent-shell-make-environment-variables :inherit-env t)))
 
+;;; gptel -- LLM client via OpenRouter, with Emacs introspection tools
+(load-file "~/repos/dotfiles/gptel.el")
 
-;; (use-package auto-dim-other-buffers
-;;   :ensure t
-;;   :config
-;;   (setq auto-dim-other-buffers-mode t
-;;         auto-dim-other-buffers-dim-on-switch-to-minibuffer nil)
-;;   (custom-set-faces
-;;    '(auto-dim-other-buffers-face ((t (:background "gray25"))))))
+;;; which-key (built into Emacs 30+, no package needed)
+(which-key-mode)
 
-;; helm-m-x is currently used
-;; (use-package counsel
-;; :ensure t
-;; :bind (("M-x" . counsel-M-x))
-;; )
-
-
-;; (use-package restclient
-;;   :ensure t)
-
-(use-package lorem-ipsum
-  :ensure t)
-
-;; (use-package yaml-mode
-;;   :ensure t)
-
-;; (use-package terraform-mode
-;;   :ensure t)
-
-;; (use-package rust-mode
-;;   :ensure t
-;;   :mode "\\.rs\\'"
-;;   :init
-
-;;   ;; (add-hook 'rust-mode-hook 'company-mode)
-;;   :bind
-;;   ("C-c C-c" . rust-run)
-;;   :config
-;;   (setq rust-format-on-save nil))
-
-;; (use-package cargo
-;;   :ensure t
-;;   :hook ((rust-mode toml-mode) . cargo-minor-mode))
-
-;; (use-package toml-mode
-;;   :mode "\\.toml\\'"
-;;   :ensure t)
-
-(use-package uuidgen
-  :ensure t)
-
-;; (use-package nginx-mode
-;;   :ensure t)
-
-;; (use-package editorconfig
-;;   :ensure t
-;;   :diminish editorconfig-mode
-;;   :config
-;;   (editorconfig-mode 1))
-
-;; (use-package kotlin-mode
-;;   :ensure t)
-
-
-;; (package-install-file "~/tmp/gptel")
-
-
-;; Org-mode
-(use-package org
-  :ensure t
-  :pin gnu
+;;; Minibuffer completion: vertico + orderless + marginalia
+(use-package vertico
+  :init
+  (vertico-mode)
   :config
-  (setq org-todo-keyword-faces
-        '(("TODO" . "#cc3342")      ; Set the TODO state color
-          ("WIP"  . "#e3a51c")   ; Set the WIP state color
-          ("DONE" . "#3bc455"))))  ; Set the DONE state color
+  (setq vertico-cycle t))
 
-(with-eval-after-load 'org
-  ;; Highlight src blocks using the major mode mapped here
-  (add-to-list 'org-src-lang-modes '("ts" . typescript))
-)
-(scroll-bar-mode -1)
-(winner-mode t)
+(use-package orderless
+  :custom
+  ;; orderless first; basic keeps standard prefix matching fallback working
+  (completion-styles '(orderless basic))
+  (completion-category-overrides '((file (styles basic partial-completion)))))
 
+(use-package marginalia
+  :init
+  (marginalia-mode))
 
+;; Persist minibuffer history across sessions (complements vertico)
+(savehist-mode)
 
-;; (load-file "~/repos/dotfiles/gptel.el")
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(agent-shell-anthropic-default-model-id "claude-opus-4-6")
- '(backup-by-copying t)
- '(backup-directory-alist '(("." . "~/.emacs.d/saves")))
- '(css-indent-offset 2)
- '(eglot-connect-timeout 9999999)
- '(js-indent-level 2)
- '(magit-list-refs-sortby "-creatordate")
- '(package-selected-packages
-   '(agent-shell company eglot exec-path-from-shell flycheck gptel graphql-mode groovy-mode helm-projectile lorem-ipsum
-		 magit markdown-mode mcp multiple-cursors prettier-js try typescript-mode uuidgen wgrep-helm)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(whitespace-line ((t nil)))
- '(whitespace-space ((t (:foreground "unemphasizedSelectedTextBackgroundColor"))))
- '(whitespace-tab ((t (:foreground "dark red")))))
+;; Persisted history of opened files: recentf tracks them and writes
+;; its list to recentf-save-file (periodically and on exit).
+;; consult-buffer (C-x b) includes the recents; C-x C-r opens the
+;; recents list directly.
+(recentf-mode)
+(setq recentf-max-saved-items 500
+      recentf-exclude
+      '("/\.git/" "node_modules" "\.elc$" "\.eln$"
+        "/\.cache/" "\.DS_Store"))
 
+;;; Consult -- search/navigation commands riding on completing-read
+;; consult-line: "swoop" (old C-M-s helm-swoop binding kept)
+;; consult-buffer: buffers+files+recentf   consult-ripgrep: project-wide grep
+(use-package consult
+  :bind (
+         ("C-M-s" . consult-line)
+         ("C-x b" . consult-buffer)
+         ("M-r" . consult-ripgrep)
+         ;; C-x p f -> fuzzy project file picker (override built-in
+         ;; project-find-file with consult-find, still under project.el)
+         (:map project-prefix-map
+               ("f" . consult-find))))
 
+;;; Magit
+(use-package magit)
 
-(add-to-list 'load-path "~/repos/dotfiles")
-(load "llm.el")
+;;; Node / nvm
+;; Emacs is usually launched from the dock, so it never runs ~/.zshrc and
+;; therefore doesn't have nvm's node on PATH. As a result subprocesses like
+;; compile resolve the wrong node/turbo (e.g. /opt/homebrew/bin) instead of
+;; the nvm `default` version your interactive shell uses. Read the alias and
+;; prepend that version's bin to PATH + exec-path so compile matches your shell.
+(let* ((nvm-dir (expand-file-name "~/.nvm"))
+       (alias-file (expand-file-name "default" (expand-file-name "alias" nvm-dir)))
+       (version (and (file-exists-p alias-file)
+                     (string-trim (with-temp-buffer
+                                    (insert-file-contents alias-file)
+                                    (buffer-string)))))
+       (node-bin (when version
+                   (expand-file-name
+                    (format "versions/node/%s/bin" version) nvm-dir))))
+  (when (and node-bin (file-directory-p node-bin))
+    (add-to-list 'exec-path node-bin)
+    (setenv "PATH" (mapconcat #'identity
+                               (cons node-bin
+                                     (split-string (getenv "PATH") path-separator t))
+                               path-separator))))
+
+;;; Compilation
+;; turbo (Turborepo) 2.x launches an interactive full-screen TUI when it
+;; detects a terminal, emitting alternate-screen/cursor/mouse escape
+;; sequences that garbage-up *Compilation* buffers. Emacs' `compile'
+;; hands the process a pty, so turbo thinks it's interactive. The robust
+;; version-independent fix is to use a pipe instead of a pty: turbo then
+;; sees no TTY and falls back to plain streaming output (still ANSI-colored).
+;; (TURBO_UI=false won't reliably work -- turbo 2.8.1 may ignore it.)
+(setq compilation-process-connection-type nil)
+
+;; fallback for turbo versions that still try the TUI: force stream mode
+(add-to-list 'compilation-environment "TURBO_UI=false")

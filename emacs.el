@@ -323,26 +323,52 @@ and resolved LSP type signatures/parameters/return types."
 (use-package magit)
 
 ;;; Node / nvm
-;; Emacs is usually launched from the dock, so it never runs ~/.zshrc and
-;; therefore doesn't have nvm's node on PATH. As a result subprocesses like
-;; compile resolve the wrong node/turbo (e.g. /opt/homebrew/bin) instead of
-;; the nvm `default` version your interactive shell uses. Read the alias and
-;; prepend that version's bin to PATH + exec-path so compile matches your shell.
+;; Emacs launched from the macOS GUI/dock inherits launchd's minimal PATH
+;; and does not run interactive shell dotfiles (~/.zshrc), so nvm's node
+;; and global binaries (pyright, typescript-language-server, turbo, etc.)
+;; are missing from PATH and `exec-path'.
+;;
+;; Resolve the active/default nvm node bin directory dynamically across
+;; aliases (e.g. "default", "lts/*", or direct version strings) with a
+;; fallback to the newest installed version in ~/.nvm/versions/node/.
 (let* ((nvm-dir (expand-file-name "~/.nvm"))
-       (alias-file (expand-file-name "default" (expand-file-name "alias" nvm-dir)))
-       (version (and (file-exists-p alias-file)
+       (alias-dir (expand-file-name "alias" nvm-dir))
+       (default-file (expand-file-name "default" alias-dir))
+       (raw-ver (and (file-exists-p default-file)
                      (string-trim (with-temp-buffer
-                                    (insert-file-contents alias-file)
+                                    (insert-file-contents default-file)
                                     (buffer-string)))))
-       (node-bin (when version
-                   (expand-file-name
-                    (format "versions/node/%s/bin" version) nvm-dir))))
+       (version
+        (cond
+         ((null raw-ver) nil)
+         ;; Direct semver like "v24.13.1" or "24.13.1"
+         ((string-match-p "^v?[0-9]+\\.[0-9]+\\.[0-9]+" raw-ver)
+          (if (string-prefix-p "v" raw-ver) raw-ver (concat "v" raw-ver)))
+         ;; Named alias inside ~/.nvm/alias/ (e.g. "lts/iron", "node", etc.)
+         ((file-exists-p (expand-file-name raw-ver alias-dir))
+          (string-trim (with-temp-buffer
+                         (insert-file-contents (expand-file-name raw-ver alias-dir))
+                         (buffer-string))))
+         ;; Otherwise find highest installed version matching prefix
+         (t nil)))
+       (node-bin
+        (or (and version
+                 (let ((dir (expand-file-name (format "versions/node/%s/bin" version) nvm-dir)))
+                   (and (file-directory-p dir) dir)))
+            ;; Fallback: highest installed version in ~/.nvm/versions/node/
+            (let* ((versions-dir (expand-file-name "versions/node" nvm-dir))
+                   (installed (and (file-directory-p versions-dir)
+                                   (directory-files versions-dir nil "^v[0-9]")))
+                   (latest (car (last (sort installed #'string-version-lessp)))))
+              (when latest
+                (expand-file-name (format "%s/bin" latest) versions-dir))))))
   (when (and node-bin (file-directory-p node-bin))
     (add-to-list 'exec-path node-bin)
     (setenv "PATH" (mapconcat #'identity
-                               (cons node-bin
-                                     (split-string (getenv "PATH") path-separator t))
-                               path-separator))))
+                              (cons node-bin
+                                    (delete node-bin
+                                            (split-string (getenv "PATH") path-separator t)))
+                              path-separator))))
 
 ;;; Compilation
 ;; turbo (Turborepo) 2.x launches an interactive full-screen TUI when it

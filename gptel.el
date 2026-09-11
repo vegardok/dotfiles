@@ -38,7 +38,8 @@ Falls back to the OPENROUTER_API_KEY environment variable."
             openai/gpt-5.6-luna
             openai/gpt-5-codex
             z-ai/glm-5.3-flash
-            deepseek/deepseek-v4-flash-0731))
+            deepseek/deepseek-v4-flash-0731
+	    deepseek/deepseek-v4.1-flash))
 
 ;;; Defaults
 

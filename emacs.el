@@ -13,6 +13,11 @@
 (sensible-defaults/use-all-settings)
 (sensible-defaults/bind-commenting-and-uncommenting)
 
+;;; Backups
+;; Keep backups out of the file's directory — no inline file~ clutter.
+(setq backup-directory-alist
+      (list (cons "." user-emacs-directory)))
+
 ;;; Native compilation
 ;; Async native-comp of installed packages (agent-shell, shell-maker, ...)
 ;; emits spurious "function not known to be defined" warnings for
@@ -67,10 +72,9 @@
                         (propertize "[ts]" 'face 'shadow)))))
 
 (defalias 'list-buffers 'ibuffer)
-(setq display-buffer-alist
-      '((".*"
-         (display-buffer-same-window)
-         (inhibit-same-window . nil))))
+
+(setq magit-display-buffer-function
+      #'magit-display-buffer-same-window-except-diff-v1)
 
 ;; major modes + eglot (TypeScript, Python)
 ;; The ts-modes (:mode mappings below) are needed on Emacs 30 AND 31 --
@@ -85,7 +89,8 @@
 (setq treesit-language-source-alist
       '((typescript "https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src")
         (tsx "https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src")
-        (python "https://github.com/tree-sitter/tree-sitter-python")))
+        (python "https://github.com/tree-sitter/tree-sitter-python")
+        (yaml "https://github.com/tree-sitter/tree-sitter-yaml")))
 ;; (Grammars for all of these are already compiled; to refresh one:
 ;;  M-x treesit-install-language-grammar RET <lang>)
 
@@ -218,6 +223,10 @@ and resolved LSP type signatures/parameters/return types."
   (setq-default typescript-indent-level 2
                 js-indent-level 2))
 
+(use-package yaml
+  :straight nil
+  :mode (("\\.ya?ml\\'" . yaml-ts-mode)))
+
 ;;; Markdown (used by eglot to render LSP docstrings/hover info)
 (use-package markdown-mode
   :custom
@@ -321,6 +330,8 @@ and resolved LSP type signatures/parameters/return types."
 
 ;;; Magit
 (use-package magit)
+
+(use-package ghostel)
 
 ;;; Node / nvm
 ;; Emacs launched from the macOS GUI/dock inherits launchd's minimal PATH

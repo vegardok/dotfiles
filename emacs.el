@@ -13,6 +13,10 @@
 (sensible-defaults/use-all-settings)
 (sensible-defaults/bind-commenting-and-uncommenting)
 
+;; Display width of a tab character, everywhere (buffer-local
+;; tab-width settings elsewhere override this per-mode/per-project).
+(setq-default tab-width 2)
+
 ;;; Backups
 ;; Keep backups out of the file's directory — no inline file~ clutter.
 (setq backup-directory-alist
@@ -24,6 +28,18 @@
 ;; autoloaded / macro-generated functions. They're harmless package lint
 ;; noise; don't spam the startup buffer with them.
 (add-to-list 'warning-suppress-types '(native-compiler))
+
+;; This machine's Command Line Tools ship a newer/beta MacOSX27.0.sdk
+;; alongside the matching MacOSX26.5.sdk, and `cc' (via xcrun's default
+;; SDK resolution) picks the newer one -- whose .tbd stub files use a
+;; TAPI target syntax (e.g. arm64e.x1-macos) this system's `ld' can't
+;; parse, so ANY native compile (tree-sitter grammars, native-comp of
+;; packages) fails with "unknown architecture" linker errors. Pin
+;; SDKROOT to the SDK that actually matches the OS/toolchain version.
+(when (eq system-type 'darwin)
+  (let ((sdk "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"))
+    (when (file-directory-p sdk)
+      (setenv "SDKROOT" sdk))))
 
 ;;; straight.el bootstrap
 (defvar bootstrap-version)
@@ -85,12 +101,17 @@
 ;; `treesit-language-source-alist' below; on Emacs 30 they had to be
 ;; installed manually with M-x treesit-install-language-grammar.
 ;; Old typescript-mode/tsx derived modes/prettier-js are obsolete --
-;; formatting is handled by eglot (server) when available.
+;; on-save formatting is handled by apheleia running prettier (below),
+;; not the LSP server, since tsserver/volar formatting doesn't follow
+;; project .prettierrc rules the way prettier itself does.
 (setq treesit-language-source-alist
       '((typescript "https://github.com/tree-sitter/tree-sitter-typescript" nil "typescript/src")
         (tsx "https://github.com/tree-sitter/tree-sitter-typescript" nil "tsx/src")
         (python "https://github.com/tree-sitter/tree-sitter-python")
-        (yaml "https://github.com/tree-sitter/tree-sitter-yaml")))
+        (yaml "https://github.com/tree-sitter-grammars/tree-sitter-yaml")
+        (vue "https://github.com/ikatyang/tree-sitter-vue")
+        (css "https://github.com/tree-sitter/tree-sitter-css")
+        (dockerfile "https://github.com/camdencheek/tree-sitter-dockerfile")))
 ;; (Grammars for all of these are already compiled; to refresh one:
 ;;  M-x treesit-install-language-grammar RET <lang>)
 
@@ -215,13 +236,97 @@ and resolved LSP type signatures/parameters/return types."
   :custom
   (python-indent-offset 2))
 
+(use-package dockerfile-ts-mode
+  ;; Built into Emacs 30+; force it directly rather than the bundled
+  ;; `dockerfile-ts-mode-maybe' autoload, which silently falls back to
+  ;; fundamental-mode when `treesit-enabled-modes' is nil (the default).
+  :straight nil
+  :mode (("\\(?:Dockerfile\\|Containerfile\\)\\(?:\\..*\\)?\\'" . dockerfile-ts-mode)
+         ("\\.[Dd]ockerfile\\'" . dockerfile-ts-mode)))
+
+(defun my-apply-prettierrc-settings ()
+  "Mirror indent style and line width from a project's .prettierrc.
+editorconfig-mode (below) only reads .editorconfig; some projects
+(e.g. employer configs preferring tabs) declare style solely via
+.prettierrc instead, so pick that up too rather than hardcoding one
+style for every project."
+  (when-let* ((dir (locate-dominating-file default-directory ".prettierrc"))
+              (config (ignore-errors
+                        (json-parse-string
+                         (with-temp-buffer
+                           (insert-file-contents (expand-file-name ".prettierrc" dir))
+                           (buffer-string))
+                         :object-type 'alist :false-object nil))))
+    (when (eq (alist-get 'useTabs config) t)
+      (setq indent-tabs-mode t))
+    (when-let* ((width (alist-get 'printWidth config)))
+      (setq fill-column width)
+      ;; whitespace-mode's overlong-line highlighting has its own
+      ;; threshold, separate from fill-column, defaulting to 80.
+      (setq-local whitespace-line-column width)
+      (when (bound-and-true-p whitespace-mode)
+        (whitespace-mode -1)
+        (whitespace-mode 1)))))
+
 (use-package typescript
   :straight nil
   :mode (("\\.ts\\'" . typescript-ts-mode)
          ("\\.tsx\\'" . tsx-ts-mode))
+  :hook ((typescript-ts-mode tsx-ts-mode) . my-apply-prettierrc-settings)
   :config
   (setq-default typescript-indent-level 2
                 js-indent-level 2))
+
+;;; Vue
+;; vue-ts-mode (treesit) embeds tsx/css grammars for the <script> and
+;; <style> blocks via treesit range parsers. Indentation follows the
+;; project's .editorconfig (via editorconfig-mode, below) or .prettierrc
+;; (via my-apply-prettierrc-settings) -- don't hardcode tabs/spaces here.
+;; LSP: volar (vue-language-server), pinned to 2.x:
+;;   npm install -g @vue/language-server@2.2.12
+;; 3.x only runs in "hybrid mode", which needs the client to bridge
+;; `tsserver/request' notifications to a real tsserver. Eglot has no such
+;; bridge, so 3.x crashes/hangs. 2.x with hybridMode off does TS itself,
+;; using the project's own TypeScript (tsdk).
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               `(vue-ts-mode
+                 . ,(lambda (_interactive project)
+                      `("vue-language-server" "--stdio"
+                        :initializationOptions
+                        (:typescript
+                         (:tsdk ,(expand-file-name "node_modules/typescript/lib"
+                                                   (project-root project)))
+                         :vue (:hybridMode :json-false)))))))
+
+(use-package vue-ts-mode
+  ;; Not on MELPA; pull directly from GitHub
+  :straight (vue-ts-mode :type git :host github :repo "8uff3r/vue-ts-mode")
+  :mode ("\\.vue\\'" . vue-ts-mode)
+  :hook (vue-ts-mode . (lambda ()
+                          (eglot-ensure)
+                          (my-apply-prettierrc-settings))))
+
+;;; Format on save: prettier via apheleia
+;; Async, point/undo-preserving formatter runner. `prettier' resolves the
+;; parser from the file extension itself (--stdin-filepath), so one
+;; formatter entry covers .ts/.tsx/.vue, and apheleia's npx wrapper prefers
+;; each project's local node_modules/.bin/prettier over a global install.
+(use-package apheleia
+  :hook ((typescript-ts-mode tsx-ts-mode vue-ts-mode) . apheleia-mode)
+  :config
+  (setf (alist-get 'typescript-ts-mode apheleia-mode-alist) 'prettier)
+  (setf (alist-get 'tsx-ts-mode apheleia-mode-alist) 'prettier)
+  (setf (alist-get 'vue-ts-mode apheleia-mode-alist) 'prettier))
+
+;;; Editorconfig -- project-declared whitespace rules win
+;; Emacs 30+ bundles this. Reads each project's .editorconfig and applies
+;; indent_style/indent_size/tab_width per buffer, so employer conventions
+;; (Vue project or otherwise) are honored without hardcoding anything.
+(use-package editorconfig
+  :straight nil
+  :config
+  (editorconfig-mode 1))
 
 (use-package yaml
   :straight nil
@@ -289,8 +394,12 @@ and resolved LSP type signatures/parameters/return types."
 (use-package vertico
   :init
   (vertico-mode)
+  :bind (:map vertico-map
+              ("M-DEL" . vertico-directory-up))
   :config
-  (setq vertico-cycle t))
+  (setq vertico-cycle t)
+  (require 'vertico-directory)
+  (add-hook 'rfn-eshadow-update-overlay-hook #'vertico-directory-tidy))
 
 (use-package orderless
   :custom
@@ -318,11 +427,20 @@ and resolved LSP type signatures/parameters/return types."
 ;;; Consult -- search/navigation commands riding on completing-read
 ;; consult-line: "swoop" (old C-M-s helm-swoop binding kept)
 ;; consult-buffer: buffers+files+recentf   consult-ripgrep: project-wide grep
+(defun my-consult-ripgrep (&optional dir)
+  "Like `consult-ripgrep', but seed the search with the active region.
+Mirrors the old helm grep-from-selection behavior. DIR is passed through
+untouched, so the prefix-arg directory/project prompt still works."
+  (interactive "P")
+  (consult-ripgrep dir (when (use-region-p)
+                         (prog1 (buffer-substring-no-properties (region-beginning) (region-end))
+                           (deactivate-mark)))))
+
 (use-package consult
   :bind (
          ("C-M-s" . consult-line)
          ("C-x b" . consult-buffer)
-         ("M-r" . consult-ripgrep)
+         ("M-r" . my-consult-ripgrep)
          ;; C-x p f -> fuzzy project file picker (override built-in
          ;; project-find-file with consult-find, still under project.el)
          (:map project-prefix-map
@@ -393,3 +511,16 @@ and resolved LSP type signatures/parameters/return types."
 
 ;; fallback for turbo versions that still try the TUI: force stream mode
 (add-to-list 'compilation-environment "TURBO_UI=false")
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(whitespace-line-column 120))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(whitespace-space ((t (:background "textBackgroundColor" :foreground "gray90"))))
+ '(whitespace-tab ((t (:background "textBackgroundColor" :foreground "gray90")))))
